@@ -1,6 +1,7 @@
 package com.socialmedia.auth_service.Security;
 
 import java.security.Key;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,7 +23,8 @@ import jakarta.annotation.PostConstruct;
 public class JwtUtil {
     
     private String secretKey;
-    @Value("${jwt.secret:}")
+    // Prefer application property 'jwt.secret', fallback to environment '.env' property 'JWT_SECRET'
+    @Value("${jwt.secret:${JWT_SECRET:}}")
     private String configuredSecret;
 
     JwtUtil(){ }
@@ -59,8 +61,13 @@ public class JwtUtil {
     }
 
     private Key getKey() {
-        byte[] keyByte = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyByte) ;
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secretKey);
+        } catch (IllegalArgumentException ex) {
+            keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
 

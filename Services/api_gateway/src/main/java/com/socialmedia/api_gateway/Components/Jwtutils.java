@@ -1,6 +1,7 @@
 package com.socialmedia.api_gateway.Components;
 
 import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -18,7 +19,8 @@ import jakarta.annotation.PostConstruct;
 public class Jwtutils {
     
     private String secretKey;
-    @Value("${jwt.secret:}")
+    // Prefer application property 'jwt.secret', fallback to environment '.env' property 'JWT_SECRET'
+    @Value("${jwt.secret:${JWT_SECRET:}}")
     private String configuredSecret;
 
     @PostConstruct
@@ -38,7 +40,7 @@ public class Jwtutils {
     }
     public Claims extractCliams(String token){
         return Jwts.parserBuilder()
-                .setSigningKey(Keys.hmacShaKeyFor(Base64.getDecoder().decode(secretKey)))
+                .setSigningKey(Keys.hmacShaKeyFor(getSecretBytes()))
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -50,6 +52,14 @@ public class Jwtutils {
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
+        }
+    }
+
+    private byte[] getSecretBytes() {
+        try {
+            return Base64.getDecoder().decode(secretKey);
+        } catch (IllegalArgumentException ex) {
+            return secretKey.getBytes(StandardCharsets.UTF_8);
         }
     }
 }

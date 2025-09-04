@@ -47,8 +47,8 @@ public class JwtAuthenticationFilter  extends AbstractGatewayFilterFactory<JwtAu
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username,null, Collections.emptyList());
             ServerWebExchange mutatedExchange = exchange.mutate()
                                                         .request(r -> r.headers(headers->{
-                                                            headers.add("X-User-Id", userId);
-                                                            headers.add("X-Username", username);
+                                                            headers.set("X-User-Id", userId);
+                                                            headers.set("X-Username", username);
                                                         }))
                                                         .build();
             return chain.filter(mutatedExchange)
