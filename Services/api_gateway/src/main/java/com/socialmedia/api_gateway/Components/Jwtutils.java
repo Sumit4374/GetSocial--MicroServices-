@@ -19,7 +19,6 @@ import jakarta.annotation.PostConstruct;
 public class Jwtutils {
     
     private String secretKey;
-    // Prefer application property 'jwt.secret', fallback to environment '.env' property 'JWT_SECRET'
     @Value("${jwt.secret:${JWT_SECRET:}}")
     private String configuredSecret;
 

@@ -35,7 +35,7 @@ public class Headers {
         }
 
         Map<String,String> headers = new HashMap<>();
-        headers.put("X-User-Id", userId);
+        headers.put("X-User-Id", userId==null?"":userId);
         headers.put("X-Username", username);
         return ResponseEntity.ok(headers);
     }

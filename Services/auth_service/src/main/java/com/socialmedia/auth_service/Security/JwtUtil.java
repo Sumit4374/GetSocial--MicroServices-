@@ -46,18 +46,21 @@ public class JwtUtil {
     }
 
     
-    public String generateToken(String username){
+    public String generateToken(String username, String userId){
         Map<String,Object> claims = new HashMap<>(); 
-    long expiryMillis = 1000L * 60 * 60 * 24;
-    return Jwts.builder()
-                    .claims()
-                    .add(claims)
-                    .subject(username)
-                    .issuedAt(new Date(System.currentTimeMillis()))
-            .expiration(new Date(System.currentTimeMillis() + expiryMillis))
-                    .and()
-                    .signWith(getKey())
-                    .compact();
+        if(userId!=null){
+            claims.put("id", userId);
+        }
+        long expiryMillis = 1000L * 60 * 60 * 24;
+        return Jwts.builder()
+                        .claims()
+                        .add(claims)
+                        .subject(username)
+                        .issuedAt(new Date(System.currentTimeMillis()))
+                        .expiration(new Date(System.currentTimeMillis() + expiryMillis))
+                        .and()
+                        .signWith(getKey())
+                        .compact();
     }
 
     private Key getKey() {
