@@ -55,7 +55,6 @@ public class UserService {
     public UserProfile create(CreateUserProfileRequest request) {
         UserProfile newUser = UserProfile.builder()
                     .username(request.getUsername())
-                    .id(request.getUserId())
                     .bio(request.getBio())
                     .build();
         return repo.save(newUser);

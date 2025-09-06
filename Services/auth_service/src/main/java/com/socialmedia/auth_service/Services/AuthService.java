@@ -39,7 +39,6 @@ public class AuthService {
         user.setBio(req.getBio());
         try {
             CreateUserProfileRequest profileRequest = CreateUserProfileRequest.builder()
-                        .userId(user.getId())
                         .username(user.getUsername())
                         .bio(user.getBio())
                         .build();
