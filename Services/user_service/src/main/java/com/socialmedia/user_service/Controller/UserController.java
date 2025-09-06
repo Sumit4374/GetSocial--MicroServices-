@@ -33,6 +33,7 @@ public class UserController {
     public ResponseEntity<CreateUserProfileRequest> create(@RequestBody CreateUserProfileRequest request){
         UserProfile newUser = userService.create(request);
         CreateUserProfileRequest profile = CreateUserProfileRequest.builder()
+                                            .userId(newUser.getUserId())
                                             .bio(request.getBio())
                                             .username(newUser.getUsername())
                                             .build();

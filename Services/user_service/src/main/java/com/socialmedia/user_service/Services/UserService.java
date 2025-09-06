@@ -54,6 +54,7 @@ public class UserService {
 
     public UserProfile create(CreateUserProfileRequest request) {
         UserProfile newUser = UserProfile.builder()
+                    .userId(request.getUserId())
                     .username(request.getUsername())
                     .bio(request.getBio())
                     .build();

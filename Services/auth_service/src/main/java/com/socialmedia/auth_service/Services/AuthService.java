@@ -37,8 +37,10 @@ public class AuthService {
         user.setPassword(bCryptPasswordEncoder.encode(req.getPassword()));
         user.setEmail(req.getEmail());
         user.setBio(req.getBio());
+        user = userRepo.save(user);
         try {
             CreateUserProfileRequest profileRequest = CreateUserProfileRequest.builder()
+                        .userId(user.getId())
                         .username(user.getUsername())
                         .bio(user.getBio())
                         .build();
@@ -46,7 +48,7 @@ public class AuthService {
         } catch (Exception e) {
             System.out.println("Failed to create profile in userService "+ e);
         }
-        return userRepo.save(user);
+        return user;
     }
 
     public JwtResponse login(LoginRequest req){
