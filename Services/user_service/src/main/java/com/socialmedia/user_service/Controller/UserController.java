@@ -13,11 +13,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.socialmedia.user_service.DTO.CreateUserProfileRequest;
 import com.socialmedia.user_service.Model.UserProfile;
 import com.socialmedia.user_service.Services.UserService;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 public class UserController {
     
     @Autowired
@@ -26,6 +27,17 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<UserProfile>> getAllUser(){
         return ResponseEntity.ok(userService.getAllUser());
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<CreateUserProfileRequest> create(@RequestBody CreateUserProfileRequest request){
+        UserProfile newUser = userService.create(request);
+        CreateUserProfileRequest profile = CreateUserProfileRequest.builder()
+                                            .userId(newUser.getId())
+                                            .bio(request.getBio())
+                                            .username(newUser.getUsername())
+                                            .build();
+        return ResponseEntity.ok(profile);
     }
 
     @GetMapping("/{id}")
@@ -50,4 +62,5 @@ public class UserController {
         userService.unFollowUser(userId, id);
         return ResponseEntity.ok("Unfollow Successfull");
     }
+
 }

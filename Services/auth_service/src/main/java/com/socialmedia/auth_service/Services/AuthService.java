@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.socialmedia.auth_service.Client.UserServiceClient;
+import com.socialmedia.auth_service.DTO.CreateUserProfileRequest;
 import com.socialmedia.auth_service.DTO.JwtResponse;
 import com.socialmedia.auth_service.DTO.LoginRequest;
 import com.socialmedia.auth_service.DTO.SignUpRequest;
@@ -20,6 +22,8 @@ public class AuthService {
     private JwtUtil jwtUtil;
     @Autowired
     private UserRepository userRepo;
+    @Autowired
+    private UserServiceClient serviceClient;
 
     public User register(SignUpRequest req){
         if(userRepo.existsByUsername(req.getUsername())){
@@ -33,6 +37,16 @@ public class AuthService {
         user.setPassword(bCryptPasswordEncoder.encode(req.getPassword()));
         user.setEmail(req.getEmail());
         user.setBio(req.getBio());
+        try {
+            CreateUserProfileRequest profileRequest = CreateUserProfileRequest.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .bio(user.getBio())
+                        .build();
+            serviceClient.createUser(profileRequest);
+        } catch (Exception e) {
+            System.out.println("Failed to create profile in userService "+ e);
+        }
         return userRepo.save(user);
     }
 

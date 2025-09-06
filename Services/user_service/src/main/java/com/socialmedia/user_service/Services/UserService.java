@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.socialmedia.user_service.DTO.CreateUserProfileRequest;
 import com.socialmedia.user_service.Model.UserProfile;
 import com.socialmedia.user_service.Repository.UserRepository;
 
@@ -49,5 +50,14 @@ public class UserService {
         UserProfile targetUser = repo.findById(targetId).orElseThrow(()-> new RuntimeException("No Target user found"));
         targetUser.getFollowers().remove(user);
         repo.save(targetUser);
+    }
+
+    public UserProfile create(CreateUserProfileRequest request) {
+        UserProfile newUser = UserProfile.builder()
+                    .username(request.getUsername())
+                    .id(request.getUserId())
+                    .bio(request.getBio())
+                    .build();
+        return repo.save(newUser);
     }
 }
