@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,10 @@ public class PostService {
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(),ObjectUtils.asMap("resource_type","auto"));
         String profilePicUrl = uploadResult.get("secure_url").toString();
         return profilePicUrl;
+    }
+
+    public List<Post> getSuggestedPosts(int page,int size){
+        return repo.findByUserIdOrderByCreatedAtDesc(PageRequest.of(page, size));
     }
 
     public List<Post> getPostsByUser(Long userId){
