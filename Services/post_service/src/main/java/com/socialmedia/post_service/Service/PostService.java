@@ -41,10 +41,6 @@ public class PostService {
         return profilePicUrl;
     }
 
-    public List<Post> getSuggestedPosts(int page,int size){
-        return repo.findByUserIdOrderByCreatedAtDesc(PageRequest.of(page, size));
-    }
-
     public List<Post> getPostsByUser(Long userId){
         return repo.findByUserIdOrderByCreatedAtDesc(userId);
     }

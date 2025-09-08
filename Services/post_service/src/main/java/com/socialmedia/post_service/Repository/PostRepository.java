@@ -2,7 +2,6 @@ package com.socialmedia.post_service.Repository;
 
 import java.util.List;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,5 +10,4 @@ import com.socialmedia.post_service.Model.Post;
 @Repository
 public interface PostRepository extends JpaRepository<Post,Long> {
     List<Post> findByUserIdOrderByCreatedAtDesc(Long userId);
-    List<Post> findByUserIdOrderByCreatedAtDesc(PageRequest of);
 }
