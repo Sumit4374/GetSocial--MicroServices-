@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.socialmedia.post_service.Client.UserService;
 import com.socialmedia.post_service.Model.Post;
 import com.socialmedia.post_service.Service.PostService;
 
@@ -24,6 +25,7 @@ public class PostController {
     
     @Autowired
     private PostService postService;
+    @Autowired UserService userClient;
 
     @GetMapping("/head")
     public ResponseEntity<String> getHeader(@RequestHeader(value = "X-User-Id", required = false) String userId){
@@ -37,6 +39,15 @@ public class PostController {
         @RequestParam("file") MultipartFile file
     )throws IOException{
         return ResponseEntity.ok(postService.createPost(userId, caption, file));
+    }
+
+    @PostMapping("/profile-pic")
+    public ResponseEntity<String> uploadProfilePic(
+        @RequestHeader("X-User-Id") Long userId,
+        @RequestParam("file") MultipartFile file
+    )throws IOException {
+        userClient.updateprofile(userId, postService.createProfilePic(file));
+        return ResponseEntity.ok("Profile Pic Updated");
     }
 
     @GetMapping("/{userId}")

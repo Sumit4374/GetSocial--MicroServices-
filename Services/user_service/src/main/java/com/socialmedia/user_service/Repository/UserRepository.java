@@ -9,4 +9,6 @@ import com.socialmedia.user_service.Model.UserProfile;
 @Repository
 public interface UserRepository extends JpaRepository<UserProfile,Long>{
     Optional<UserProfile> findByUsername(String username);
+
+    Optional<UserProfile> findByUserId(Long userId);
 }

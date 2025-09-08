@@ -30,6 +30,14 @@ public class UserService {
         return repo.findAll();
     }
 
+    public void updateProfilePic(Long userId, String picUrl){
+        UserProfile userProfile = repo.findByUserId(userId).orElseThrow(
+            () -> new RuntimeException("no user found")
+        );
+        userProfile.setProfilePicURL(picUrl);
+        repo.save(userProfile);
+    }
+
     public UserProfile updateProfile(Long userId,UserProfile updateUser){
         UserProfile user = repo.findById(userId).orElseThrow(()-> new RuntimeException("No user found"));
         user.setName(updateUser.getName());

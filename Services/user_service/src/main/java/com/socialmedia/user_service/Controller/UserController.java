@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.socialmedia.user_service.DTO.CreateUserProfileRequest;
@@ -38,6 +39,12 @@ public class UserController {
                                             .username(newUser.getUsername())
                                             .build();
         return ResponseEntity.ok(profile);
+    }
+
+    @PutMapping("{userId}/updateprofile")
+    public ResponseEntity<String> updateProfilePic(@PathVariable Long userId, @RequestParam("url") String profilePicUrl){
+        userService.updateProfilePic(userId, profilePicUrl);
+        return ResponseEntity.ok("Profile picture updated successfully");
     }
 
     @GetMapping("/{id}")
