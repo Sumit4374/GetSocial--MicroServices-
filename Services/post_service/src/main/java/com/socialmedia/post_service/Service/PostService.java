@@ -20,17 +20,23 @@ public class PostService {
     private PostRepository repo;
     @Autowired
     private Cloudinary cloudinary;
+    @Autowired
+    private PostEventProducer producer;
 
     public Post createPost(Long userId, String caption, MultipartFile file) throws IOException{
+        Post post = Post.builder()
+        .userId(userId)
+        .caption(caption)
+        .build();
+
+        Post saved = repo.save(post);
+        Post forMediaUrl = repo.findById(saved.getId()).orElseThrow(()-> new RuntimeException("Post Did not saved"));
+        producer.sendPostCreatedEvent(saved);
         @SuppressWarnings("rawtypes")
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("resource_type","auto"));
         String mediaUrl = uploadResult.get("secure_url").toString();
-        Post post = Post.builder()
-                    .userId(userId)
-                    .caption(caption)
-                    .mediaUrl(mediaUrl)
-                    .build();
-        return repo.save(post);
+        forMediaUrl.setMediaUrl(mediaUrl);
+        return repo.save(forMediaUrl);
     }
 
     public String createProfilePic(MultipartFile file) throws IOException{

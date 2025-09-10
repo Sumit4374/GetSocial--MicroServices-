@@ -25,7 +25,10 @@ public class PostController {
     
     @Autowired
     private PostService postService;
-    @Autowired UserService userClient;
+    @Autowired 
+    private UserService userClient;
+    
+
 
     @GetMapping("/head")
     public ResponseEntity<String> getHeader(@RequestHeader(value = "X-User-Id", required = false) String userId){
