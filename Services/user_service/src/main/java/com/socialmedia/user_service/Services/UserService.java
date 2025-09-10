@@ -17,6 +17,8 @@ public class UserService {
     
     @Autowired
     private UserRepository repo;
+    @Autowired
+    private UserEventProducer producer;
 
     public UserService(UserRepository repo){
         this.repo=repo;
@@ -66,6 +68,8 @@ public class UserService {
                     .username(request.getUsername())
                     .bio(request.getBio())
                     .build();
-        return repo.save(newUser);
+        newUser = repo.save(newUser);
+        producer.createUserEvent(newUser);
+        return newUser;
     }
 }
