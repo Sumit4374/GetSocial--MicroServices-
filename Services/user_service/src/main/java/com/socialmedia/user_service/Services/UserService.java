@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.socialmedia.user_service.DTO.CreateUserProfileRequest;
+import com.socialmedia.user_service.DTO.UserProfileBasics;
 import com.socialmedia.user_service.Model.UserProfile;
 import com.socialmedia.user_service.Repository.UserRepository;
 
@@ -40,8 +41,34 @@ public class UserService {
         repo.save(userProfile);
     }
 
+    public boolean isFollowing(Long userId, Long targetId){
+        UserProfile userProfile = repo.findById(userId).orElseThrow(
+            ()-> new RuntimeException("No user Found")
+        );
+        UserProfile targetProfile = repo.findById(userId).orElseThrow(
+            ()-> new RuntimeException("No user Found")
+        );
+        if(userProfile.getFollowing().contains(targetProfile)){
+            return true;
+        }
+        return false;
+    }
+
+    public UserProfileBasics getBasics(Long userId){
+        UserProfile user = repo.findByUserId(userId).orElseThrow(
+            ()-> new RuntimeException("No user found")
+        );
+        UserProfileBasics basics = UserProfileBasics.builder()
+                                                    .id(user.getId())
+                                                    .username(user.getUsername())
+                                                    .profilePicUrl(user.getProfilePicURL())
+                                                    .build();
+        return basics;
+    }
+
     public UserProfile updateProfile(Long userId,UserProfile updateUser){
-        UserProfile user = repo.findById(userId).orElseThrow(()-> new RuntimeException("No user found"));
+        UserProfile user = repo.findById(userId).orElseThrow(
+            ()-> new RuntimeException("No user found"));
         user.setName(updateUser.getName());
         user.setBio(updateUser.getBio());
         user.setProfilePicURL(updateUser.getProfilePicURL());
@@ -49,15 +76,19 @@ public class UserService {
     }
 
     public void followUser(Long userId, Long targetId){
-        UserProfile user = repo.findById(userId).orElseThrow(()-> new RuntimeException("No user Found"));
-        UserProfile targetUser = repo.findById(targetId).orElseThrow(()-> new RuntimeException("No Target user Found"));
+        UserProfile user = repo.findById(userId).orElseThrow(
+            ()-> new RuntimeException("No user Found"));
+        UserProfile targetUser = repo.findById(targetId).orElseThrow(
+            ()-> new RuntimeException("No Target user Found"));
         targetUser.getFollowers().add(user);
         repo.save(targetUser);        
     }
 
     public void unFollowUser(Long userId, Long targetId){
-        UserProfile user = repo.findById(userId).orElseThrow(()-> new RuntimeException("No user Found"));
-        UserProfile targetUser = repo.findById(targetId).orElseThrow(()-> new RuntimeException("No Target user found"));
+        UserProfile user = repo.findById(userId).orElseThrow(
+            ()-> new RuntimeException("No user Found"));
+        UserProfile targetUser = repo.findById(targetId).orElseThrow(
+            ()-> new RuntimeException("No Target user found"));
         targetUser.getFollowers().remove(user);
         repo.save(targetUser);
     }
