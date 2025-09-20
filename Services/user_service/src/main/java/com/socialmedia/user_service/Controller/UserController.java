@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.socialmedia.user_service.DTO.CreateUserProfileRequest;
+import com.socialmedia.user_service.DTO.UserProfileBasics;
 import com.socialmedia.user_service.Model.UserProfile;
 import com.socialmedia.user_service.Services.UserService;
 
@@ -70,4 +71,13 @@ public class UserController {
         return ResponseEntity.ok("Unfollow Successfull");
     }
 
+    @GetMapping("/{userId}/is-following/{otherUserId}")
+    public boolean isFollowing(@PathVariable Long userId, @PathVariable Long otherUserId){
+        return userService.isFollowing(userId, otherUserId);
+    }
+
+    @GetMapping("{userId}/basics")
+    public ResponseEntity<UserProfileBasics> getBasics(@PathVariable Long userId){
+        return ResponseEntity.ok(userService.getBasics(userId));
+    }
 }
