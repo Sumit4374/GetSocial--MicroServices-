@@ -14,7 +14,6 @@ import com.socialmedia.auth_service.DTO.UserResponse;
 import com.socialmedia.auth_service.Model.User;
 import com.socialmedia.auth_service.Security.CustomUserDetails;
 import com.socialmedia.auth_service.Services.AuthService;
-import com.socialmedia.auth_service.Services.UserService;
 
 import jakarta.validation.Valid;
 
@@ -29,8 +28,6 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
-    @Autowired
-    private UserService userService;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody SignUpRequest res){
@@ -55,8 +52,16 @@ public class AuthController {
         if(userDetails==null){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        Long userID=userDetails.getId();
-        return ResponseEntity.ok(userService.getUserById(userID));
+        User authenticatedUser = userDetails.getUser();
+
+        UserResponse response = new UserResponse();
+        response.setId(authenticatedUser.getId());
+        response.setUsername(authenticatedUser.getUsername());
+        response.setEmail(authenticatedUser.getEmail());
+        response.setBio(authenticatedUser.getBio());
+        response.setProfilePicture(authenticatedUser.getProfilePicture());
+
+        return ResponseEntity.ok(response);
     }
     
 }

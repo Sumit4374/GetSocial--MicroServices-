@@ -27,6 +27,13 @@ const ChatWindow: React.FC = () => {
   }, [conversationId]);
 
   useEffect(() => {
+    if (!conversationId || !user) {
+      return;
+    }
+    loadConversationDetails();
+  }, [conversationId, user]);
+
+  useEffect(() => {
     // Handle real-time messages
     const newChatMessage = notifications.find(n => n.type === 'message' && n.conversationId === conversationId);
     if (newChatMessage) {
@@ -58,6 +65,18 @@ const ChatWindow: React.FC = () => {
       console.error('Failed to load messages:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadConversationDetails = async () => {
+    try {
+      const conversations = await apiClient.getConversations();
+      const matchedConversation = conversations.find((conv) => conv.id === conversationId);
+      if (matchedConversation) {
+        setConversation(matchedConversation);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation details:', error);
     }
   };
 
@@ -95,6 +114,8 @@ const ChatWindow: React.FC = () => {
       {/* Header */}
       <div className="flex items-center space-x-4 p-4 border-b border-gray-200">
         <button
+          type="button"
+          aria-label="Back to messages"
           onClick={() => navigate('/messages')}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
@@ -164,10 +185,12 @@ const ChatWindow: React.FC = () => {
           />
           <button
             type="submit"
+            aria-label="Send message"
             disabled={!newMessage.trim() || sending}
             className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-4 h-4" aria-hidden="true" />
+            <span className="sr-only">Send message</span>
           </button>
         </div>
       </form>

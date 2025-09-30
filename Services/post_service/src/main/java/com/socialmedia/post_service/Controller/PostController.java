@@ -59,6 +59,11 @@ public class PostController {
         return ResponseEntity.ok(postService.getPostsByUser(userId));
     }
 
+    @GetMapping("/feed/{userId}")
+    public ResponseEntity<List<Post>> getFeed(@PathVariable Long userId){
+        return ResponseEntity.ok(postService.getFeed(userId));
+    }
+
     @DeleteMapping("/delete/{postId}")
     public ResponseEntity<String> deletePost(
         @RequestHeader("X-User-Id") Long userId,

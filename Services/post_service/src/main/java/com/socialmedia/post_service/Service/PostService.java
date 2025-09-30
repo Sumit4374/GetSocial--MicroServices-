@@ -50,6 +50,11 @@ public class PostService {
         return repo.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    public List<Post> getFeed(Long userId){
+        // TODO: incorporate follow graph once available. Currently returns all posts.
+        return repo.findAllByOrderByCreatedAtDesc();
+    }
+
     public void deletePost(Long postId, Long userId){
         Post post = repo.findById(postId).orElseThrow(()-> new RuntimeException("No post found"));
         if(!post.getId().equals(userId)){

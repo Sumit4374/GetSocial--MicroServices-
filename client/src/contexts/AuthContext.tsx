@@ -42,24 +42,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await apiClient.login(email, password);
-      const { token: newToken, user: userData } = response;
       
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
+      if (!response.token) {
+        throw new Error('Invalid login response');
+      }
+      
+      // Set token first so subsequent API calls can use it
+      localStorage.setItem('token', response.token);
+      setToken(response.token);
+      
+      // Now fetch the complete user data
+      const userData = await apiClient.getCurrentUser();
       setUser(userData);
     } catch (error) {
+      // Clean up on failure
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
       throw error;
     }
   };
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      const response = await apiClient.register(username, email, password);
-      const { token: newToken, user: userData } = response;
+      await apiClient.register(username, email, password);
       
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-      setUser(userData);
+      // Registration doesn't return a token, so we need to login after registration
+      await login(email, password);
     } catch (error) {
       throw error;
     }

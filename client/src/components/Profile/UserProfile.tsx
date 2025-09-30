@@ -51,10 +51,10 @@ const UserProfile: React.FC = () => {
   };
 
   const checkFollowingStatus = async () => {
-    if (!currentUser || !userId || currentUser.id === userId) return;
+    if (!currentUser || !userId || currentUser.id === parseInt(userId)) return;
 
     try {
-      const result = await apiClient.isFollowing(currentUser.id, userId);
+      const result = await apiClient.isFollowing(currentUser.id.toString(), userId);
       setIsFollowing(result.isFollowing);
     } catch (error) {
       console.error('Failed to check following status:', error);
@@ -62,14 +62,14 @@ const UserProfile: React.FC = () => {
   };
 
   const handleFollowToggle = async () => {
-    if (!currentUser || !userId || currentUser.id === userId) return;
+    if (!currentUser || !userId || currentUser.id === parseInt(userId)) return;
 
     try {
       if (isFollowing) {
-        await apiClient.unfollowUser(currentUser.id, userId);
+        await apiClient.unfollowUser(currentUser.id.toString(), userId);
         setIsFollowing(false);
       } else {
-        await apiClient.followUser(currentUser.id, userId);
+        await apiClient.followUser(currentUser.id.toString(), userId);
         setIsFollowing(true);
       }
       // Reload profile to update follower count
@@ -151,15 +151,15 @@ const UserProfile: React.FC = () => {
             {/* Stats */}
             <div className="flex justify-center md:justify-start space-x-8 mb-4">
               <div className="text-center">
-                <div className="font-bold text-xl text-gray-900">{user.postCount}</div>
+                <div className="font-bold text-xl text-gray-900">{user.postCount || 0}</div>
                 <div className="text-gray-600 text-sm">Posts</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-xl text-gray-900">{user.followerCount}</div>
+                <div className="font-bold text-xl text-gray-900">{user.followerCount || 0}</div>
                 <div className="text-gray-600 text-sm">Followers</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-xl text-gray-900">{user.followingCount}</div>
+                <div className="font-bold text-xl text-gray-900">{user.followingCount || 0}</div>
                 <div className="text-gray-600 text-sm">Following</div>
               </div>
             </div>
@@ -179,6 +179,8 @@ const UserProfile: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900">Posts</h2>
           <div className="flex items-center space-x-2">
             <button
+              type="button"
+              aria-label="Grid view"
               onClick={() => setView('grid')}
               className={`p-2 rounded-lg transition-colors ${
                 view === 'grid' ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100'
@@ -187,6 +189,8 @@ const UserProfile: React.FC = () => {
               <Grid className="w-5 h-5" />
             </button>
             <button
+              type="button"
+              aria-label="List view"
               onClick={() => setView('list')}
               className={`p-2 rounded-lg transition-colors ${
                 view === 'list' ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100'
@@ -214,21 +218,37 @@ const UserProfile: React.FC = () => {
           ) : (
             <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-6'}>
               {view === 'grid' ? (
-                posts.map((post) => (
-                  <div key={post.id} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                    {post.imageUrl ? (
-                      <img
-                        src={post.imageUrl}
-                        alt="Post"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center p-4">
-                        <p className="text-gray-600 text-center line-clamp-4">{post.content}</p>
-                      </div>
-                    )}
-                  </div>
-                ))
+                posts.map((post) => {
+                  const mediaUrl = post.mediaUrl || post.imageUrl;
+                  const textContent = post.caption ?? post.content ?? '';
+                  const isVideo = mediaUrl
+                    ? /\.(mp4|m4v|mov|webm|ogg|mpe?g)$/i.test(mediaUrl.split('?')[0])
+                    : false;
+
+                  return (
+                    <div key={post.id} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      {mediaUrl ? (
+                        isVideo ? (
+                          <video
+                            controls
+                            src={mediaUrl}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <img
+                            src={mediaUrl}
+                            alt="Post media"
+                            className="w-full h-full object-cover"
+                          />
+                        )
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center p-4">
+                          <p className="text-gray-600 text-center line-clamp-4">{textContent}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 posts.map((post) => (
                   <PostCard

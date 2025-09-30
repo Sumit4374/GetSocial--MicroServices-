@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Image as ImageIcon, Send } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, Send, X } from 'lucide-react';
 import { apiClient } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -8,19 +8,84 @@ const CreatePost: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<'image' | 'video' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!content.trim() && !imageUrl.trim()) || !user || isSubmitting) return;
+  useEffect(() => {
+    return () => {
+      if (mediaPreview) {
+        URL.revokeObjectURL(mediaPreview);
+      }
+    };
+  }, [mediaPreview]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (mediaPreview) {
+      URL.revokeObjectURL(mediaPreview);
+    }
+
+    if (!file) {
+      setMediaFile(null);
+      setMediaPreview(null);
+      setPreviewType(null);
+      return;
+    }
+
+    setMediaFile(file);
+
+    if (file.type.startsWith('image/')) {
+      setPreviewType('image');
+      setMediaPreview(URL.createObjectURL(file));
+    } else if (file.type.startsWith('video/')) {
+      setPreviewType('video');
+      setMediaPreview(URL.createObjectURL(file));
+    } else {
+      setPreviewType(null);
+      setMediaPreview(null);
+    }
+  };
+
+  const clearMedia = () => {
+    if (mediaPreview) {
+      URL.revokeObjectURL(mediaPreview);
+    }
+    setMediaFile(null);
+    setMediaPreview(null);
+    setPreviewType(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    if (!mediaFile || !user || isSubmitting) {
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      await apiClient.createPost({
-        content: content.trim(),
-        imageUrl: imageUrl.trim() || undefined,
-      });
+      const formData = new FormData();
+      const caption = content.trim();
+      formData.append('caption', caption);
+      formData.append('file', mediaFile);
+
+      if (!user) {
+        throw new Error('User context not available');
+      }
+
+      await apiClient.createPost(formData, user.id);
+
+      setContent('');
+      clearMedia();
       navigate('/');
     } catch (error) {
       console.error('Failed to create post:', error);
@@ -36,6 +101,7 @@ const CreatePost: React.FC = () => {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
+              aria-label="Go back"
               onClick={() => navigate('/')}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
@@ -44,8 +110,8 @@ const CreatePost: React.FC = () => {
             <h1 className="text-lg font-semibold text-gray-900">Create Post</h1>
           </div>
           <button
-            onClick={handleSubmit}
-            disabled={(!content.trim() && !imageUrl.trim()) || isSubmitting}
+            onClick={() => handleSubmit()}
+            disabled={!mediaFile || !user || isSubmitting}
             className="px-6 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             <Send className="w-4 h-4" />
@@ -85,33 +151,56 @@ const CreatePost: React.FC = () => {
             rows={6}
           />
 
-          {/* Image URL Input */}
+          {/* Media Upload */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Image URL (optional)
+              Media (image or video)
             </label>
-            <div className="relative">
-              <ImageIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-              />
+            <div className="flex items-center space-x-3">
+              <label className="inline-flex items-center px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-pink-500 hover:text-pink-500 transition-colors">
+                <ImageIcon className="w-5 h-5 mr-2" />
+                <span className="text-sm font-medium">Upload media</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+              {mediaFile && (
+                <button
+                  type="button"
+                  onClick={clearMedia}
+                  className="flex items-center space-x-1 text-sm text-gray-500 hover:text-red-500 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Remove</span>
+                </button>
+              )}
             </div>
+            {mediaFile && (
+              <p className="mt-2 text-sm text-gray-600">{mediaFile.name}</p>
+            )}
           </div>
 
-          {/* Image Preview */}
-          {imageUrl.trim() && (
+          {/* Media Preview */}
+          {mediaPreview && previewType === 'image' && (
             <div className="mt-4">
               <img
-                src={imageUrl}
-                alt="Preview"
+                src={mediaPreview}
+                alt="Selected media preview"
                 className="w-full max-h-64 object-cover rounded-lg border border-gray-200"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
+              />
+            </div>
+          )}
+
+          {mediaPreview && previewType === 'video' && (
+            <div className="mt-4">
+              <video
+                controls
+                src={mediaPreview}
+                className="w-full max-h-64 rounded-lg border border-gray-200"
               />
             </div>
           )}

@@ -10,4 +10,5 @@ import com.socialmedia.post_service.Model.Post;
 @Repository
 public interface PostRepository extends JpaRepository<Post,Long> {
     List<Post> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Post> findAllByOrderByCreatedAtDesc();
 }

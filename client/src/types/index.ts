@@ -1,40 +1,45 @@
 export interface User {
-  id: string;
+  id: number;  // Changed from string to number to match backend Long
   username: string;
   email: string;
   profilePicture?: string;
   bio?: string;
-  followerCount: number;
-  followingCount: number;
-  postCount: number;
-  createdAt: string;
+  // Note: These fields are not returned by auth service /me endpoint
+  // They would need to come from user service if needed
+  followerCount?: number;
+  followingCount?: number;
+  postCount?: number;
+  createdAt?: string;
 }
 
 export interface Post {
   id: string;
-  userId: string;
-  content: string;
+  userId: number;  // Changed to match User.id type
+  content?: string;
+  caption?: string;
   imageUrl?: string;
-  createdAt: string;
-  likeCount: number;
-  commentCount: number;
-  user: User;
+  mediaUrl?: string;
+  createdAt?: string | null;
+  likeCount?: number;
+  commentCount?: number;
+  user?: User;
   isLiked?: boolean;
 }
 
 export interface Comment {
-  id: string;
-  postId: string;
-  userId: string;
-  content: string;
-  createdAt: string;
-  user: User;
+  id: string | number;
+  postId: string | number;
+  userId: number;  // Changed to match User.id type
+  content?: string;
+  comment?: string;
+  createdAt?: string | null;
+  user?: User;
 }
 
 export interface Like {
   id: string;
   postId: string;
-  userId: string;
+  userId: number;  // Changed to match User.id type
   user: User;
 }
 
@@ -48,7 +53,7 @@ export interface ChatConversation {
 export interface ChatMessage {
   id: string;
   conversationId: string;
-  senderId: string;
+  senderId: number;  // Changed to match User.id type
   content: string;
   createdAt: string;
   sender: User;
@@ -57,7 +62,7 @@ export interface ChatMessage {
 export interface Notification {
   id: string;
   type: 'like' | 'comment' | 'follow' | 'chat_request' | 'post';
-  userId: string;
+  userId: number;  // Changed to match User.id type
   fromUser: User;
   postId?: string;
   message: string;
@@ -68,7 +73,7 @@ export interface Notification {
 export interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (usernameOrEmail: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;

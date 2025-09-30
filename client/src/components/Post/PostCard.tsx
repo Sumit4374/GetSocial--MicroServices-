@@ -14,9 +14,20 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
-  const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
   const [showComments, setShowComments] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const mediaUrl = post.mediaUrl || post.imageUrl;
+  const postText = post.caption ?? post.content ?? '';
+  const isVideo = mediaUrl
+    ? /\.(mp4|m4v|mov|webm|ogg|mpe?g)$/i.test(mediaUrl.split('?')[0])
+    : false;
+  const isCurrentUserPost = user?.id === post.userId;
+  const authorName = post.user?.username ?? (isCurrentUserPost ? user?.username : `User ${post.userId}`) ?? 'Unknown User';
+  const authorProfilePicture = post.user?.profilePicture ?? (isCurrentUserPost ? user?.profilePicture : undefined);
+  const createdAtLabel = post.createdAt
+    ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })
+    : 'Just now';
 
   const handleLike = async () => {
     if (!user || isLiking) return;
@@ -44,7 +55,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
       try {
         await navigator.share({
           title: 'GetSocial Post',
-          text: post.content,
+          text: postText,
           url: window.location.href,
         });
       } catch (error) {
@@ -66,44 +77,54 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
-          {post.user.profilePicture ? (
+          {authorProfilePicture ? (
             <img
-              src={post.user.profilePicture}
-              alt={post.user.username}
+              src={authorProfilePicture}
+              alt={authorName}
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-semibold">
-              {post.user.username.charAt(0).toUpperCase()}
+              {authorName.charAt(0).toUpperCase()}
             </div>
           )}
           <div>
-            <h3 className="font-semibold text-gray-900">{post.user.username}</h3>
-            <p className="text-sm text-gray-500">
-              {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-            </p>
+            <h3 className="font-semibold text-gray-900">{authorName}</h3>
+            <p className="text-sm text-gray-500">{createdAtLabel}</p>
           </div>
         </div>
-        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+        <button
+          type="button"
+          aria-label="Post actions"
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
           <MoreHorizontal className="w-5 h-5 text-gray-500" />
         </button>
       </div>
 
       {/* Image */}
-      {post.imageUrl && (
+      {mediaUrl && (
         <div className="aspect-square">
-          <img
-            src={post.imageUrl}
-            alt="Post content"
-            className="w-full h-full object-cover"
-          />
+          {isVideo ? (
+            <video
+              controls
+              src={mediaUrl}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={mediaUrl}
+              alt="Post content"
+              className="w-full h-full object-cover"
+            />
+          )}
         </div>
       )}
 
       {/* Content */}
-      {post.content && (
+      {postText && (
         <div className="p-4">
-          <p className="text-gray-900 leading-relaxed">{post.content}</p>
+          <p className="text-gray-900 leading-relaxed">{postText}</p>
         </div>
       )}
 
@@ -112,6 +133,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-4">
             <button
+              type="button"
+              aria-label={isLiked ? 'Unlike post' : 'Like post'}
               onClick={handleLike}
               disabled={isLiking}
               className={`flex items-center space-x-1 transition-colors ${
@@ -121,12 +144,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
               <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
             </button>
             <button
+              type="button"
+              aria-label="View comments"
               onClick={() => setShowComments(true)}
               className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors"
             >
               <MessageCircle className="w-6 h-6" />
             </button>
             <button
+              type="button"
+              aria-label="Share post"
               onClick={handleShare}
               className="flex items-center space-x-1 text-gray-600 hover:text-green-500 transition-colors"
             >
@@ -142,7 +169,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
               {likeCount} {likeCount === 1 ? 'like' : 'likes'}
             </p>
           )}
-          {post.commentCount > 0 && (
+          {(post.commentCount ?? 0) > 0 && (
             <button
               onClick={() => setShowComments(true)}
               className="text-gray-500 hover:text-gray-700 transition-colors"

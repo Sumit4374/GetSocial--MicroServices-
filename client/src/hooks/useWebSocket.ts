@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export const useWebSocket = (url: string, userId?: string) => {
+export const useWebSocket = (url: string, userId?: string | number) => {
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const websocketRef = useRef<WebSocket | null>(null);
