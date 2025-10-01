@@ -24,19 +24,17 @@ public class PostService {
     private PostEventProducer producer;
 
     public Post createPost(Long userId, String caption, MultipartFile file) throws IOException{
-        Post post = Post.builder()
-        .userId(userId)
-        .caption(caption)
-        .build();
-
-        Post saved = repo.save(post);
-        Post forMediaUrl = repo.findById(saved.getId()).orElseThrow(()-> new RuntimeException("Post Did not saved"));
-        producer.sendPostCreatedEvent(saved);
         @SuppressWarnings("rawtypes")
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("resource_type","auto"));
         String mediaUrl = uploadResult.get("secure_url").toString();
-        forMediaUrl.setMediaUrl(mediaUrl);
-        return repo.save(forMediaUrl);
+        Post post = Post.builder()
+        .userId(userId)
+        .caption(caption)
+        .mediaUrl(mediaUrl)
+        .build();
+        Post saved = repo.save(post);
+        producer.sendPostCreatedEvent(saved);
+        return post;
     }
 
     public String createProfilePic(MultipartFile file) throws IOException{
@@ -51,7 +49,6 @@ public class PostService {
     }
 
     public List<Post> getFeed(Long userId){
-        // TODO: incorporate follow graph once available. Currently returns all posts.
         return repo.findAllByOrderByCreatedAtDesc();
     }
 

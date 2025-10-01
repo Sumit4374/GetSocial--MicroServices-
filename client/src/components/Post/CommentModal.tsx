@@ -9,9 +9,10 @@ interface CommentModalProps {
   post: Post;
   onClose: () => void;
   onUpdate: () => void;
+  onCommentCountChange?: (count: number) => void;
 }
 
-const CommentModal: React.FC<CommentModalProps> = ({ post, onClose, onUpdate }) => {
+const CommentModal: React.FC<CommentModalProps> = ({ post, onClose, onUpdate, onCommentCountChange }) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -77,6 +78,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, onClose, onUpdate }) 
       });
 
       setComments(enrichedComments);
+      onCommentCountChange?.(enrichedComments.length);
     } catch (error) {
       console.error('Failed to load comments:', error);
     } finally {

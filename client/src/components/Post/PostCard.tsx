@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, Share } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Heart, MessageCircle, MoreHorizontal, Share, Trash, UserMinus, UserPlus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Post } from '../../types';
 import { apiClient } from '../../utils/api';
@@ -13,10 +13,14 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
   const { user } = useAuth();
-  const [isLiked, setIsLiked] = useState(post.isLiked || false);
+  const [isLiked, setIsLiked] = useState(Boolean(post.isLiked));
   const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
+  const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
   const [showComments, setShowComments] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const mediaUrl = post.mediaUrl || post.imageUrl;
   const postText = post.caption ?? post.content ?? '';
   const isVideo = mediaUrl
@@ -29,17 +33,49 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
     ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })
     : 'Just now';
 
+  useEffect(() => {
+    setIsLiked(Boolean(post.isLiked));
+    setLikeCount(post.likeCount ?? 0);
+    setCommentCount(post.commentCount ?? 0);
+  }, [post.isLiked, post.likeCount, post.commentCount]);
+
+  useEffect(() => {
+    if (!user || isCurrentUserPost || !post.userId) {
+      setIsFollowing(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchFollowState = async () => {
+      try {
+        const result = await apiClient.isFollowing(user.id, post.userId);
+        if (!cancelled) {
+          setIsFollowing(result.isFollowing);
+        }
+      } catch (error) {
+        console.error('Failed to fetch follow state:', error);
+      }
+    };
+
+    fetchFollowState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, post.userId, isCurrentUserPost]);
+
   const handleLike = async () => {
     if (!user || isLiking) return;
 
     setIsLiking(true);
     try {
       if (isLiked) {
-        await apiClient.unlikePost(post.id);
+        await apiClient.unlikePost(post.id, user.id);
         setIsLiked(false);
-        setLikeCount(prev => prev - 1);
+        setLikeCount(prev => Math.max(0, prev - 1));
       } else {
-        await apiClient.likePost(post.id);
+        await apiClient.likePost(post.id, user.id);
         setIsLiked(true);
         setLikeCount(prev => prev + 1);
       }
@@ -47,6 +83,49 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
       console.error('Failed to toggle like:', error);
     } finally {
       setIsLiking(false);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!user || isCurrentUserPost || !post.userId || isFollowLoading) {
+      return;
+    }
+
+    setIsFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await apiClient.unfollowUser(user.id, post.userId);
+        setIsFollowing(false);
+      } else {
+        await apiClient.followUser(user.id, post.userId);
+        setIsFollowing(true);
+      }
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to toggle follow:', error);
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user || !isCurrentUserPost || isDeleting) {
+      return;
+    }
+
+    const confirmation = window.confirm('Are you sure you want to delete this post?');
+    if (!confirmation) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await apiClient.deletePost(post.id, user.id);
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to delete post:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -93,13 +172,52 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
             <p className="text-sm text-gray-500">{createdAtLabel}</p>
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="Post actions"
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <MoreHorizontal className="w-5 h-5 text-gray-500" />
-        </button>
+        <div className="flex items-center space-x-2">
+          {!isCurrentUserPost && user && (
+            <button
+              type="button"
+              onClick={handleFollowToggle}
+              disabled={isFollowLoading}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                isFollowing
+                  ? 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                  : 'bg-pink-500 text-white hover:bg-pink-600'
+              } ${isFollowLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {isFollowing ? (
+                <>
+                  <UserMinus className="w-4 h-4" />
+                  <span>Unfollow</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  <span>Follow</span>
+                </>
+              )}
+            </button>
+          )}
+          {isCurrentUserPost && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              aria-label="Delete post"
+              disabled={isDeleting}
+              className={`p-2 rounded-full transition-colors border border-transparent text-gray-500 hover:text-red-600 hover:bg-red-50 ${
+                isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <Trash className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Post actions"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <MoreHorizontal className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
       </div>
 
       {/* Image */}
@@ -164,19 +282,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
 
         {/* Stats */}
         <div className="space-y-1">
-          {likeCount > 0 && (
-            <p className="font-semibold text-gray-900">
-              {likeCount} {likeCount === 1 ? 'like' : 'likes'}
-            </p>
-          )}
-          {(post.commentCount ?? 0) > 0 && (
-            <button
-              onClick={() => setShowComments(true)}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              View all {post.commentCount} comments
-            </button>
-          )}
+          <p className="font-semibold text-gray-900">
+            {likeCount} {likeCount === 1 ? 'like' : 'likes'}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowComments(true)}
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            {commentCount === 0
+              ? 'Be the first to comment'
+              : `View all ${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}
+          </button>
         </div>
       </div>
 
@@ -186,6 +303,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
           post={post}
           onClose={() => setShowComments(false)}
           onUpdate={onUpdate}
+          onCommentCountChange={setCommentCount}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 export interface User {
   id: number;  // Changed from string to number to match backend Long
   username: string;
-  email: string;
+  email?: string;
   profilePicture?: string;
   bio?: string;
   // Note: These fields are not returned by auth service /me endpoint
@@ -13,7 +13,7 @@ export interface User {
 }
 
 export interface Post {
-  id: string;
+  id: number;
   userId: number;  // Changed to match User.id type
   content?: string;
   caption?: string;

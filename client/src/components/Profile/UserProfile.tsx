@@ -41,7 +41,8 @@ const UserProfile: React.FC = () => {
     if (!userId) return;
 
     try {
-      const userPosts = await apiClient.getUserPosts(userId);
+      const viewerId = currentUser?.id;
+      const userPosts = await apiClient.getUserPosts(userId, viewerId);
       setPosts(userPosts);
     } catch (error) {
       console.error('Failed to load user posts:', error);

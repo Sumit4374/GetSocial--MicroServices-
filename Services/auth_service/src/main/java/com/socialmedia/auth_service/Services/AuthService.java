@@ -13,7 +13,10 @@ import com.socialmedia.auth_service.Model.User;
 import com.socialmedia.auth_service.Repository.UserRepository;
 import com.socialmedia.auth_service.Security.JwtUtil;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class AuthService {
     
     @Autowired
@@ -46,7 +49,9 @@ public class AuthService {
                         .build();
             serviceClient.createUser(profileRequest);
         } catch (Exception e) {
-            System.out.println("Failed to create profile in userService "+ e);
+            log.error("Failed to create profile in user-service for userId {}", user.getId(), e);
+            userRepo.deleteById(user.getId());
+            throw new RuntimeException("Failed to provision user profile", e);
         }
         return user;
     }
