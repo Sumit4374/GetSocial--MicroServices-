@@ -54,8 +54,8 @@ public class PostService {
 
     public void deletePost(Long postId, Long userId){
         Post post = repo.findById(postId).orElseThrow(()-> new RuntimeException("No post found"));
-        if(!post.getId().equals(userId)){
-            throw new RuntimeException("UnAuthorized delete attempt");
+        if(!post.getUserId().equals(userId)){
+            throw new RuntimeException("UnAuthorized delete attempt"+userId +" "+ post.getUserId());
         }
         repo.delete(post);
     }

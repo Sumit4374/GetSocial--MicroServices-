@@ -12,4 +12,5 @@ import com.socialmedia.comment_service.Model.Comments;
 public interface CommentRepository extends JpaRepository<Comments,Long>{
     // @Query("select c from comments c where c.postId = :postId")
     List<Comments> findByPostId(Long postId);
+    long countByPostId(Long postId);
 }

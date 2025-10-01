@@ -181,7 +181,7 @@ class ApiClient {
     };
   }
 
-  private async enrichPostsWithUsers(rawPosts: any[]): Promise<Post[]> {
+  private async enrichPostsWithUsers(rawPosts: any[], viewerId?: number): Promise<Post[]> {
     if (!Array.isArray(rawPosts) || rawPosts.length === 0) {
       return [];
     }
@@ -226,15 +226,47 @@ class ApiClient {
       });
     }
 
+    await this.enrichPostsWithEngagement(normalized, viewerId);
+
     return normalized;
   }
 
-  private async enrichPost(rawPost: any): Promise<Post> {
+  private async enrichPostsWithEngagement(posts: Post[], viewerId?: number): Promise<void> {
+    await Promise.all(
+      posts.map(async (post) => {
+        if (!post || typeof post.id !== 'number') {
+          return;
+        }
+
+        try {
+          post.likeCount = await this.getPostLikes(post.id);
+        } catch (error) {
+          console.error(`Failed to fetch like count for post ${post.id}:`, error);
+        }
+
+        if (typeof viewerId === 'number') {
+          try {
+            post.isLiked = await this.isPostLikedByUser(post.id, viewerId);
+          } catch (error) {
+            console.error(`Failed to fetch like status for post ${post.id}:`, error);
+          }
+        }
+
+        try {
+          post.commentCount = await this.getPostCommentCount(post.id);
+        } catch (error) {
+          console.error(`Failed to fetch comment count for post ${post.id}:`, error);
+        }
+      })
+    );
+  }
+
+  private async enrichPost(rawPost: any, viewerId?: number): Promise<Post> {
     if (!rawPost) {
       throw new Error('Post not found');
     }
 
-    const [post] = await this.enrichPostsWithUsers([rawPost]);
+    const [post] = await this.enrichPostsWithUsers([rawPost], viewerId);
     return post;
   }
 
@@ -329,17 +361,23 @@ class ApiClient {
   }
 
   async followUser(userId: string | number, targetId: string | number): Promise<User> {
-    const payload = await this.request(`/user-service/api/users/${userId}/follow/${targetId}`, {
+    await this.request(`/user-service/api/users/${targetId}/follow`, {
       method: 'POST',
+      headers: {
+        'X-User-Id': String(userId),
+      },
     });
-    return this.normalizeUser(payload, Number(targetId));
+    return this.getUserBasic(targetId);
   }
 
   async unfollowUser(userId: string | number, targetId: string | number): Promise<User> {
-    const payload = await this.request(`/user-service/api/users/${userId}/unfollow/${targetId}`, {
-      method: 'DELETE',
+    await this.request(`/user-service/api/users/${targetId}/unfollow`, {
+      method: 'POST',
+      headers: {
+        'X-User-Id': String(userId),
+      },
     });
-    return this.normalizeUser(payload, Number(targetId));
+    return this.getUserBasic(targetId);
   }
 
   async getFollowers(id: string | number): Promise<User[]> {
@@ -373,14 +411,14 @@ class ApiClient {
     userId: number
   ): Promise<Post> {
     const body = data instanceof FormData ? data : JSON.stringify(data);
-  const payload = await this.request<any>('/post-service/api/post/create', {
+    const payload = await this.request<any>('/post-service/api/post/create', {
       method: 'POST',
       body,
       headers: {
         'X-User-Id': String(userId),
       },
     });
-    return this.enrichPost(payload);
+    return this.enrichPost(payload, userId);
   }
 
   async getPost(id: string | number): Promise<Post> {
@@ -401,13 +439,13 @@ class ApiClient {
     const viewerQuery = viewerId != null ? `?viewerId=${viewerId}` : '';
   const payload = await this.request<any>(`/post-service/api/post/${userId}${viewerQuery}`);
     const postsArray = Array.isArray(payload) ? payload : [];
-    return this.enrichPostsWithUsers(postsArray);
+    return this.enrichPostsWithUsers(postsArray, viewerId);
   }
 
   async getFeed(userId: number): Promise<Post[]> {
   const payload = await this.request<any>(`/post-service/api/post/feed/${userId}`);
     const postsArray = Array.isArray(payload) ? payload : [];
-    return this.enrichPostsWithUsers(postsArray);
+    return this.enrichPostsWithUsers(postsArray, userId);
   }
 
   // Like endpoints
@@ -424,7 +462,51 @@ class ApiClient {
   }
 
   async getPostLikes(postId: string | number) {
-    return this.request(`/like-service/api/like/${postId}`);
+    const payload = await this.request(`/like-service/api/like/${postId}`);
+    if (typeof payload === 'number') {
+      return payload;
+    }
+    if (payload && typeof payload === 'object') {
+      if ('likeCount' in payload) {
+        return this.toNumber((payload as any).likeCount) ?? 0;
+      }
+      if ('count' in payload) {
+        return this.toNumber((payload as any).count) ?? 0;
+      }
+    }
+    return 0;
+  }
+
+  async isPostLikedByUser(postId: string | number, userId: number): Promise<boolean> {
+    const payload = await this.request(`/like-service/api/like/${postId}/user/${userId}`);
+    if (typeof payload === 'boolean') {
+      return payload;
+    }
+    if (payload && typeof payload === 'object') {
+      if ('isLiked' in payload) {
+        return Boolean((payload as any).isLiked);
+      }
+      if ('liked' in payload) {
+        return Boolean((payload as any).liked);
+      }
+    }
+    return false;
+  }
+
+  async getPostCommentCount(postId: string | number): Promise<number> {
+    const payload = await this.request(`/comment-service/api/comment/${postId}/count`);
+    if (typeof payload === 'number') {
+      return payload;
+    }
+    if (payload && typeof payload === 'object') {
+      if ('commentCount' in payload) {
+        return this.toNumber((payload as any).commentCount) ?? 0;
+      }
+      if ('count' in payload) {
+        return this.toNumber((payload as any).count) ?? 0;
+      }
+    }
+    return 0;
   }
 
   // Comment endpoints

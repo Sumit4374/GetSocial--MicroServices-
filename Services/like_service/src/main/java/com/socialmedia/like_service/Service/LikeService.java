@@ -48,4 +48,12 @@ public class LikeService {
         repo.deleteByPostIdAndUserId(postId, userId);
         return "Post Unliked"; 
     }
+
+    public long getLikeCount(Long postId) {
+        return repo.countByPostId(postId);
+    }
+
+    public boolean isPostLiked(Long postId, Long userId) {
+        return repo.existsByPostIdAndUserId(postId, userId);
+    }
 }

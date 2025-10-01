@@ -35,5 +35,9 @@ public class CommentService {
     public List<Comments> getCommentsOnpost(Long postId){
         return repo.findByPostId(postId);
     }
+
+    public long getCommentCount(Long postId) {
+        return repo.countByPostId(postId);
+    }
 }
 

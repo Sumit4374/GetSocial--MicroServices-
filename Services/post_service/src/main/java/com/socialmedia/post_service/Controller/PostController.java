@@ -68,7 +68,7 @@ public class PostController {
     public ResponseEntity<String> deletePost(
         @RequestHeader("X-User-Id") Long userId,
         @PathVariable Long postId){
-        postService.deletePost(userId, postId);
+        postService.deletePost( postId, userId);
         return ResponseEntity.ok("Post Deleted");
     }
 }
