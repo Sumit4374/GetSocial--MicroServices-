@@ -20,8 +20,10 @@ const ChatList: React.FC = () => {
     if (!user) return;
 
     try {
-      const conversationsData = await apiClient.getConversations();
-      setConversations(conversationsData);
+      const conversationsData = await apiClient.getConversations(user.id);
+      // Filter only active conversations
+      const activeConversations = conversationsData.filter(conv => conv.status === 'ACTIVE');
+      setConversations(activeConversations);
     } catch (error) {
       console.error('Failed to load conversations:', error);
     } finally {
@@ -29,12 +31,10 @@ const ChatList: React.FC = () => {
     }
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.participants.some(participant =>
-      participant.id !== user?.id &&
-      participant.username.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  const filteredConversations = conversations.filter(conv => {
+    const otherParticipant = conv.participants?.find(participant => participant.id !== user?.id);
+    return otherParticipant?.username.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   if (loading) {
     return (
@@ -48,7 +48,7 @@ const ChatList: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-100">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Messages</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Active Chats</h1>
         
         {/* Search */}
         <div className="relative">
@@ -68,12 +68,12 @@ const ChatList: React.FC = () => {
         {filteredConversations.length === 0 ? (
           <div className="p-12 text-center">
             <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No conversations yet</h3>
-            <p className="text-gray-600">Start a conversation with someone you follow</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No active conversations</h3>
+            <p className="text-gray-600">Start a conversation from the Following tab</p>
           </div>
         ) : (
           filteredConversations.map((conversation) => {
-            const otherParticipant = conversation.participants.find(p => p.id !== user?.id);
+            const otherParticipant = conversation.participants?.find(p => p.id !== user?.id);
             if (!otherParticipant) return null;
 
             return (
@@ -99,7 +99,7 @@ const ChatList: React.FC = () => {
                       <h3 className="font-semibold text-gray-900 truncate">
                         {otherParticipant.username}
                       </h3>
-                      {conversation.lastMessage && (
+                      {conversation.updatedAt && (
                         <span className="text-sm text-gray-500">
                           {formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true })}
                         </span>

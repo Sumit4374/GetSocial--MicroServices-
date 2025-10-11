@@ -80,4 +80,14 @@ public class UserController {
     public ResponseEntity<UserProfileBasics> getBasics(@PathVariable Long userId){
         return ResponseEntity.ok(userService.getBasics(userId));
     }
+
+    @GetMapping("/{id}/followers")
+    public ResponseEntity<List<UserProfileBasics>> getFollowers(@PathVariable Long id){
+        return ResponseEntity.ok(userService.getFollowers(id));
+    }
+
+    @GetMapping("/{id}/following")
+    public ResponseEntity<List<UserProfileBasics>> getFollowing(@PathVariable Long id){
+        return ResponseEntity.ok(userService.getFollowing(id));
+    }
 }

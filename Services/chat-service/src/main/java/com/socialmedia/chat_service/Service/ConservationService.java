@@ -1,8 +1,10 @@
 package com.socialmedia.chat_service.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,37 @@ public class ConservationService {
         conv.setStatus(ConversationStatus.ACTIVE);
         chatRepo.save(conv);
         return toDto(conv);
+    }
+
+    public List<ConversationDto> getUserConversations(Long userId) {
+        List<ChatModel> conversations = chatRepo.findByUserAOrUserBOrderByCreatedAtDesc(userId, userId);
+        return conversations.stream()
+                .filter(conv -> conv.getStatus() == ConversationStatus.ACTIVE)
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<ConversationDto> getPendingRequests(Long userId) {
+        List<ChatModel> conversations = chatRepo.findByUserAOrUserBOrderByCreatedAtDesc(userId, userId);
+        return conversations.stream()
+                .filter(conv -> conv.getStatus() == ConversationStatus.REQUESTED 
+                        && conv.getUserB().equals(userId))
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public ConversationDto getConversation(String conversationId) {
+        ChatModel conv = chatRepo.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+        return toDto(conv);
+    }
+
+    public void verifyParticipant(String conversationId, Long userId) {
+        ChatModel conv = chatRepo.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+        if (!(conv.getUserA().equals(userId) || conv.getUserB().equals(userId))) {
+            throw new RuntimeException("User is not a participant of this conversation");
+        }
     }
 
     private ConversationDto toDto(ChatModel chat){

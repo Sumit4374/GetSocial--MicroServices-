@@ -531,32 +531,111 @@ class ApiClient {
   }
 
   // Chat endpoints
-  async requestChat(data: any) {
+  async requestChat(requesterId: number, otherUserId: number) {
     return this.request('/chat-service/api/chats/request', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ otherUserId }),
+      headers: {
+        'X-User-Id': String(requesterId),
+      },
     });
   }
 
-  async acceptChatRequest(conversationId: string) {
+  async acceptChatRequest(conversationId: string, accepterId: number) {
     return this.request(`/chat-service/api/chats/${conversationId}/accept`, {
       method: 'POST',
+      headers: {
+        'X-User-Id': String(accepterId),
+      },
     });
   }
 
-  async getConversations(): Promise<ChatConversation[]> {
-    return this.request<ChatConversation[]>('/chat-service/api/chats');
+  async getConversations(userId: number): Promise<ChatConversation[]> {
+    const conversations = await this.request<ChatConversation[]>('/chat-service/api/chats', {
+      headers: {
+        'X-User-Id': String(userId),
+      },
+    });
+    
+    // Enrich with user data
+    if (Array.isArray(conversations)) {
+      await Promise.all(
+        conversations.map(async (conv) => {
+          try {
+            const userAData = await this.getUserBasic(conv.userA);
+            const userBData = await this.getUserBasic(conv.userB);
+            conv.participants = [userAData, userBData];
+          } catch (error) {
+            console.error('Failed to fetch participant data:', error);
+            conv.participants = [];
+          }
+        })
+      );
+    }
+    
+    return conversations || [];
   }
 
-  async sendMessage(data: any) {
+  async getPendingChatRequests(userId: number): Promise<ChatConversation[]> {
+    const requests = await this.request<ChatConversation[]>('/chat-service/api/chats/requests/pending', {
+      headers: {
+        'X-User-Id': String(userId),
+      },
+    });
+    
+    // Enrich with user data
+    if (Array.isArray(requests)) {
+      await Promise.all(
+        requests.map(async (conv) => {
+          try {
+            const userAData = await this.getUserBasic(conv.userA);
+            const userBData = await this.getUserBasic(conv.userB);
+            conv.participants = [userAData, userBData];
+          } catch (error) {
+            console.error('Failed to fetch participant data:', error);
+            conv.participants = [];
+          }
+        })
+      );
+    }
+    
+    return requests || [];
+  }
+
+  async sendMessage(senderId: number, conversationId: string, content: string) {
     return this.request('/chat-service/api/chats/message', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ conversationId, content }),
+      headers: {
+        'X-User-Id': String(senderId),
+      },
     });
   }
 
-  async getMessages(conversationId: string): Promise<ChatMessage[]> {
-    return this.request<ChatMessage[]>(`/chat-service/api/chats/${conversationId}/messages`);
+  async getMessages(conversationId: string, userId: number): Promise<ChatMessage[]> {
+    const messages = await this.request<ChatMessage[]>(
+      `/chat-service/api/chats/${conversationId}/messages`,
+      {
+        headers: {
+          'X-User-Id': String(userId),
+        },
+      }
+    );
+    
+    // Enrich with sender data
+    if (Array.isArray(messages)) {
+      await Promise.all(
+        messages.map(async (msg) => {
+          try {
+            msg.sender = await this.getUserBasic(msg.senderId);
+          } catch (error) {
+            console.error('Failed to fetch sender data:', error);
+          }
+        })
+      );
+    }
+    
+    return messages || [];
   }
 }
 

@@ -103,4 +103,28 @@ public class UserService {
         producer.createUserEvent(newUser);
         return newUser;
     }
+
+    public List<UserProfileBasics> getFollowers(Long userId) {
+        UserProfile user = repo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("No user found"));
+        return user.getFollowers().stream()
+                .map(follower -> UserProfileBasics.builder()
+                        .id(follower.getId())
+                        .username(follower.getUsername())
+                        .profilePicUrl(follower.getProfilePicURL())
+                        .build())
+                .toList();
+    }
+
+    public List<UserProfileBasics> getFollowing(Long userId) {
+        UserProfile user = repo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("No user found"));
+        return user.getFollowing().stream()
+                .map(following -> UserProfileBasics.builder()
+                        .id(following.getId())
+                        .username(following.getUsername())
+                        .profilePicUrl(following.getProfilePicURL())
+                        .build())
+                .toList();
+    }
 }

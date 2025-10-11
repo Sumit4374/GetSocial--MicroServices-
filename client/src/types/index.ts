@@ -45,9 +45,13 @@ export interface Like {
 
 export interface ChatConversation {
   id: string;
-  participants: User[];
+  userA: number;
+  userB: number;
+  status: 'REQUESTED' | 'ACTIVE' | 'BLOCKED';
+  createdAt: string;
+  participants?: User[];
   lastMessage?: ChatMessage;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface ChatMessage {
