@@ -95,6 +95,7 @@
 	</dependencyManagement>
 
 	<build>
+		<finalName>chat-service</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

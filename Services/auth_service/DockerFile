@@ -1,0 +1,5 @@
+FROM openjdk:25
+
+ADD target/auth-service.jar auth-service.jar
+
+ENTRYPOINT [ "java", "-jar", "auth-service.jar" ]

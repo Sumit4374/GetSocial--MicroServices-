@@ -1,0 +1,5 @@
+FROM openjdk:25
+
+ADD target/like-service.jar like-service.jar
+
+ENTRYPOINT [ "java", "-jar", "like-service.jar" ]
