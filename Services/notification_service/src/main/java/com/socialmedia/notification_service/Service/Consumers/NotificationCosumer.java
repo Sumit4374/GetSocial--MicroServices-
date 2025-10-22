@@ -7,17 +7,27 @@ import org.springframework.stereotype.Component;
 import com.socialmedia.notification_service.Model.Notification;
 import com.socialmedia.notification_service.Service.NotificationService;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Component
+@Slf4j
 public class NotificationCosumer {
     
-    private NotificationService service;
+    private final NotificationService service;
 
     public NotificationCosumer(NotificationService service){
-        this.service=service;
+        this.service = service;
     }
 
-    @KafkaListener(topics = {"comment-events","like-event","post-events","user-events"})
-    public void listens(ConsumerRecord<String,Notification> record){
-        System.out.println(record.toString());
+    @KafkaListener(topics = {"comment-events", "like-event", "post-events", "user-events"})
+    public void listens(ConsumerRecord<String, Notification> record) {
+        try {
+            log.info("Received notification: {}", record.value());
+            Notification notification = record.value();
+            service.createNotification(notification);
+            log.info("Notification processed successfully for user: {}", notification.getUserId());
+        } catch (Exception e) {
+            log.error("Failed to process notification: {}", e.getMessage(), e);
+        }
     }
 }

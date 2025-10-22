@@ -7,21 +7,22 @@ import org.springframework.context.annotation.Configuration;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 
-import io.github.cdimascio.dotenv.Dotenv;
-
 @Configuration
 public class CloudinaryConfig {
 
-    private Dotenv env = Dotenv.load();
+    private String cloudName = "dkmahaywh";
 
+    private String apiKey = "247566332861849";
+
+    private String apiSecret = "alxhRS1CCH7wnsHWsiQhfmT3afU";
 
     @Bean
     public Cloudinary cloudinary(){
         return new Cloudinary(
             ObjectUtils.asMap(
-                "cloud_name",env.get("CLOUD_NAME"),
-                "api_key",env.get("API_KEY"),
-                "api_secret",env.get("API_SECRET")
+                "cloud_name", cloudName,
+                "api_key", apiKey,
+                "api_secret", apiSecret
             )
         );
     }

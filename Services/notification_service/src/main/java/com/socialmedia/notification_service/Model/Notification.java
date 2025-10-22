@@ -19,6 +19,7 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long userId;
+    private Long senderId;
     private String type; // Comment/Like/Follow
     private String message;
     private Long postId;
