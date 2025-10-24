@@ -26,7 +26,7 @@ public class UserService {
     }
 
     public UserProfile getByUserId(Long userId){
-        return repo.findById(userId).orElseThrow(()-> new RuntimeException("No user found"));
+        return repo.findByUserId(userId).orElseThrow(()-> new RuntimeException("No user found"));
     }
 
     public List<UserProfile> getAllUser(){
@@ -42,11 +42,11 @@ public class UserService {
     }
 
     public boolean isFollowing(Long userId, Long targetId){
-        UserProfile userProfile = repo.findById(userId).orElseThrow(
+        UserProfile userProfile = repo.findByUserId(userId).orElseThrow(
             ()-> new RuntimeException("No user Found")
         );
-        UserProfile targetProfile = repo.findById(userId).orElseThrow(
-            ()-> new RuntimeException("No user Found")
+        UserProfile targetProfile = repo.findByUserId(targetId).orElseThrow(
+            ()-> new RuntimeException("No Target user Found")
         );
         if(userProfile.getFollowing().contains(targetProfile)){
             return true;
@@ -67,7 +67,7 @@ public class UserService {
     }
 
     public UserProfile updateProfile(Long userId,UserProfile updateUser){
-        UserProfile user = repo.findById(userId).orElseThrow(
+        UserProfile user = repo.findByUserId(userId).orElseThrow(
             ()-> new RuntimeException("No user found"));
         user.setName(updateUser.getName());
         user.setBio(updateUser.getBio());
@@ -76,20 +76,32 @@ public class UserService {
     }
 
     public void followUser(Long userId, Long targetId){
-        UserProfile user = repo.findById(userId).orElseThrow(
+        UserProfile user = repo.findByUserId(userId).orElseThrow(
             ()-> new RuntimeException("No user Found"));
-        UserProfile targetUser = repo.findById(targetId).orElseThrow(
+        UserProfile targetUser = repo.findByUserId(targetId).orElseThrow(
             ()-> new RuntimeException("No Target user Found"));
+        
+        // Update both sides of the bidirectional relationship
+        user.getFollowing().add(targetUser);
         targetUser.getFollowers().add(user);
+        
+        // Save both entities
+        repo.save(user);
         repo.save(targetUser);        
     }
 
     public void unFollowUser(Long userId, Long targetId){
-        UserProfile user = repo.findById(userId).orElseThrow(
+        UserProfile user = repo.findByUserId(userId).orElseThrow(
             ()-> new RuntimeException("No user Found"));
-        UserProfile targetUser = repo.findById(targetId).orElseThrow(
+        UserProfile targetUser = repo.findByUserId(targetId).orElseThrow(
             ()-> new RuntimeException("No Target user found"));
+        
+        // Update both sides of the bidirectional relationship
+        user.getFollowing().remove(targetUser);
         targetUser.getFollowers().remove(user);
+        
+        // Save both entities
+        repo.save(user);
         repo.save(targetUser);
     }
 
@@ -105,7 +117,7 @@ public class UserService {
     }
 
     public List<UserProfileBasics> getFollowers(Long userId) {
-        UserProfile user = repo.findById(userId)
+        UserProfile user = repo.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("No user found"));
         return user.getFollowers().stream()
                 .map(follower -> UserProfileBasics.builder()
@@ -117,7 +129,7 @@ public class UserService {
     }
 
     public List<UserProfileBasics> getFollowing(Long userId) {
-        UserProfile user = repo.findById(userId)
+        UserProfile user = repo.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("No user found"));
         return user.getFollowing().stream()
                 .map(following -> UserProfileBasics.builder()

@@ -58,6 +58,11 @@ public class PostController {
     public ResponseEntity<List<Post>> getPostsbyUser(@PathVariable Long userId){
         return ResponseEntity.ok(postService.getPostsByUser(userId));
     }
+    
+    @GetMapping("/post/{postId}")
+    public ResponseEntity<Post> getPostById(@PathVariable Long postId){
+        return ResponseEntity.ok(postService.getPostById(postId));
+    }
 
     @GetMapping("/feed/{userId}")
     public ResponseEntity<List<Post>> getFeed(@PathVariable Long userId){

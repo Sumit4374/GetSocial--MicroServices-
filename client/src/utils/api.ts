@@ -353,7 +353,7 @@ class ApiClient {
   }
 
   async updateUser(id: string | number, data: any): Promise<User> {
-    const payload = await this.request(`/user-service/api/users/${id}`, {
+    const payload = await this.request(`/user-service/api/users/${id}/update`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -636,6 +636,61 @@ class ApiClient {
     }
     
     return messages || [];
+  }
+
+  // Notification endpoints
+  async getUserNotifications(userId: number) {
+    return this.request(`/notification-service/api/notifications`, {
+      headers: {
+        'X-User-Id': String(userId),
+      },
+    });
+  }
+
+  async getUnreadNotifications(userId: number) {
+    return this.request(`/notification-service/api/notifications/unread`, {
+      headers: {
+        'X-User-Id': String(userId),
+      },
+    });
+  }
+
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    const count = await this.request<number>(`/notification-service/api/notifications/unread/count`, {
+      headers: {
+        'X-User-Id': String(userId),
+      },
+    });
+    return typeof count === 'number' ? count : 0;
+  }
+
+  async markNotificationAsRead(notificationId: number) {
+    return this.request(`/notification-service/api/notifications/${notificationId}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  async markAllNotificationsAsRead(userId: number) {
+    return this.request(`/notification-service/api/notifications/read-all`, {
+      method: 'PUT',
+      headers: {
+        'X-User-Id': String(userId),
+      },
+    });
+  }
+
+  // Profile picture upload
+  async uploadProfilePicture(userId: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return this.request(`/post-service/api/post/profile-pic`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-User-Id': String(userId),
+      },
+    });
   }
 }
 

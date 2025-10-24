@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Grid2x2 as Grid, Heart, MessageCircle, UserPlus, UserMinus } from 'lucide-react';
+import { Grid2x2 as Grid, Heart, MessageCircle, UserPlus, UserMinus, Settings } from 'lucide-react';
 import { User, Post } from '../../types';
 import { apiClient } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import PostCard from '../Post/PostCard';
+import EditProfileModal from './EditProfileModal';
+import FollowersListModal from './FollowersListModal';
+import FollowingListModal from './FollowingListModal';
 
 const UserProfile: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -15,6 +18,9 @@ const UserProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -125,7 +131,15 @@ const UserProfile: React.FC = () => {
                 {user.username}
               </h1>
               
-              {!isOwnProfile && currentUser && (
+              {isOwnProfile ? (
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Edit Profile</span>
+                </button>
+              ) : currentUser && (
                 <button
                   onClick={handleFollowToggle}
                   className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
@@ -155,14 +169,20 @@ const UserProfile: React.FC = () => {
                 <div className="font-bold text-xl text-gray-900">{user.postCount || 0}</div>
                 <div className="text-gray-600 text-sm">Posts</div>
               </div>
-              <div className="text-center">
+              <button
+                onClick={() => setShowFollowersModal(true)}
+                className="text-center hover:opacity-70 transition-opacity"
+              >
                 <div className="font-bold text-xl text-gray-900">{user.followerCount || 0}</div>
                 <div className="text-gray-600 text-sm">Followers</div>
-              </div>
-              <div className="text-center">
+              </button>
+              <button
+                onClick={() => setShowFollowingModal(true)}
+                className="text-center hover:opacity-70 transition-opacity"
+              >
                 <div className="font-bold text-xl text-gray-900">{user.followingCount || 0}</div>
                 <div className="text-gray-600 text-sm">Following</div>
-              </div>
+              </button>
             </div>
 
             {/* Bio */}
@@ -263,6 +283,32 @@ const UserProfile: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      {showEditModal && user && (
+        <EditProfileModal
+          user={user}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={() => {
+            loadUserProfile();
+            loadUserPosts();
+          }}
+        />
+      )}
+      
+      {showFollowersModal && userId && (
+        <FollowersListModal
+          userId={parseInt(userId)}
+          onClose={() => setShowFollowersModal(false)}
+        />
+      )}
+      
+      {showFollowingModal && userId && (
+        <FollowingListModal
+          userId={parseInt(userId)}
+          onClose={() => setShowFollowingModal(false)}
+        />
+      )}
     </div>
   );
 };

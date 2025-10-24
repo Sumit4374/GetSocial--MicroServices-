@@ -7,9 +7,13 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.socialmedia.notification_service.Client.PostServiceClient;
+import com.socialmedia.notification_service.Client.UserServiceClient;
 import com.socialmedia.notification_service.DTO.CommentEvent;
 import com.socialmedia.notification_service.DTO.LikeEvent;
+import com.socialmedia.notification_service.DTO.PostDTO;
 import com.socialmedia.notification_service.DTO.PostEvent;
+import com.socialmedia.notification_service.DTO.UserDTO;
 import com.socialmedia.notification_service.DTO.UserEvent;
 import com.socialmedia.notification_service.Model.Notification;
 import com.socialmedia.notification_service.Service.NotificationService;
@@ -24,6 +28,12 @@ public class NotificationCosumer {
     
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private PostServiceClient postServiceClient;
+    
+    @Autowired
+    private UserServiceClient userServiceClient;
     
     @KafkaListener(
         topics = "post-events",
@@ -56,18 +66,37 @@ public class NotificationCosumer {
                 log.info("Comment added: userId={}, postId={}, comment={}", 
                     event.getUserId(), event.getPostId(), event.getComment());
                 
-                // Create notification for the comment event
-                // Note: This will create notifications even if user comments on their own post
-                // To fix: Need to fetch post owner from post-service and compare with userId
-                Notification notification = new Notification();
-                notification.setUserId(event.getUserId()); // Temporary: using commenter's ID (should be post owner)
-                notification.setSenderId(event.getUserId());
-                notification.setType("COMMENT");
-                notification.setMessage("Someone commented on your post");
-                notification.setPostId(event.getPostId());
-                
-                service.createNotification(notification);
-                log.info("Comment notification created for postId: {}", event.getPostId());
+                // Fetch post details to get the post owner
+                try {
+                    PostDTO post = postServiceClient.getPostById(event.getPostId());
+                    
+                    if (post != null && post.getUserId() != null) {
+                        // Don't notify if user comments on their own post
+                        if (!post.getUserId().equals(event.getUserId())) {
+                            // Fetch the commenter's username
+                            UserDTO commenter = userServiceClient.getUserById(event.getUserId());
+                            
+                            String username = (commenter != null && commenter.getUsername() != null) 
+                                ? commenter.getUsername() 
+                                : "Someone";
+                            
+                            // Create notification for the post owner
+                            Notification notification = new Notification();
+                            notification.setUserId(post.getUserId()); // Post owner receives notification
+                            notification.setSenderId(event.getUserId()); // Commenter is the sender
+                            notification.setType("COMMENT");
+                            notification.setMessage(username + " commented on your post");
+                            notification.setPostId(event.getPostId());
+                            
+                            service.createNotification(notification);
+                            log.info("Comment notification created for post owner userId: {}", post.getUserId());
+                        } else {
+                            log.info("Skipping notification - user commented on their own post");
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Error fetching post or user details for comment notification", e);
+                }
             }
             
         } catch (Exception e) {
@@ -87,18 +116,37 @@ public class NotificationCosumer {
             if ("Post-Liked".equals(event.getType())) {
                 log.info("Post liked: userId={}, postId={}", event.getUserId(), event.getPostId());
                 
-                // Create notification for the like event
-                // Note: This will create notifications even if user likes their own post
-                // To fix: Need to fetch post owner from post-service and compare with userId
-                Notification notification = new Notification();
-                notification.setUserId(event.getUserId()); // Temporary: using liker's ID (should be post owner)
-                notification.setSenderId(event.getUserId());
-                notification.setType("LIKE");
-                notification.setMessage("Your post was liked");
-                notification.setPostId(event.getPostId());
-                
-                service.createNotification(notification);
-                log.info("Like notification created for postId: {}", event.getPostId());
+                // Fetch post details to get the post owner
+                try {
+                    PostDTO post = postServiceClient.getPostById(event.getPostId());
+                    
+                    if (post != null && post.getUserId() != null) {
+                        // Don't notify if user likes their own post
+                        if (!post.getUserId().equals(event.getUserId())) {
+                            // Fetch the liker's username
+                            UserDTO liker = userServiceClient.getUserById(event.getUserId());
+                            
+                            String username = (liker != null && liker.getUsername() != null) 
+                                ? liker.getUsername() 
+                                : "Someone";
+                            
+                            // Create notification for the post owner
+                            Notification notification = new Notification();
+                            notification.setUserId(post.getUserId()); // Post owner receives notification
+                            notification.setSenderId(event.getUserId()); // Liker is the sender
+                            notification.setType("LIKE");
+                            notification.setMessage(username + " liked your post");
+                            notification.setPostId(event.getPostId());
+                            
+                            service.createNotification(notification);
+                            log.info("Like notification created for post owner userId: {}", post.getUserId());
+                        } else {
+                            log.info("Skipping notification - user liked their own post");
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Error fetching post or user details for like notification", e);
+                }
                 
             } else if ("Post-UnLiked".equals(event.getType())) {
                 log.info("Post unliked: userId={}, postId={}", event.getUserId(), event.getPostId());

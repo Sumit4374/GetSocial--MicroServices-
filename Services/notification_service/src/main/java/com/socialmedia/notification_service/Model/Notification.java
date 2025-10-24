@@ -2,14 +2,18 @@ package com.socialmedia.notification_service.Model;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "notifications")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,6 +25,12 @@ public class Notification {
     private Long postId;
     private Boolean read = false;
     private LocalDateTime createdAt = LocalDateTime.now();
+    
+    @Transient
+    private String senderUsername;
+    
+    @Transient
+    private String senderProfilePicture;
     
     public Notification() {}
     
@@ -47,4 +57,10 @@ public class Notification {
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public String getSenderUsername() { return senderUsername; }
+    public void setSenderUsername(String senderUsername) { this.senderUsername = senderUsername; }
+    
+    public String getSenderProfilePicture() { return senderProfilePicture; }
+    public void setSenderProfilePicture(String senderProfilePicture) { this.senderProfilePicture = senderProfilePicture; }
 }

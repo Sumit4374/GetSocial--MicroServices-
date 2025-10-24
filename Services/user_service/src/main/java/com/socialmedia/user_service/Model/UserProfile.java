@@ -3,8 +3,12 @@ package com.socialmedia.user_service.Model;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -38,7 +42,8 @@ public class UserProfile {
     private String bio;
     private String profilePicURL;
 
-    @ManyToMany
+    @JsonIgnore
+    @ManyToMany(fetch = FetchType.LAZY)
     @Builder.Default
     @JoinTable(
         name = "followers",
@@ -47,7 +52,8 @@ public class UserProfile {
     )
     private Set<UserProfile> followers= new HashSet<>();
 
+    @JsonIgnore
     @Builder.Default
-    @ManyToMany(mappedBy = "followers")
+    @ManyToMany(mappedBy = "followers", fetch = FetchType.LAZY)
     private Set<UserProfile> following= new HashSet<>();
 }
