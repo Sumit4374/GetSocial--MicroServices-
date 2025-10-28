@@ -1,6 +1,7 @@
 package com.socialmedia.notification_service.Service;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,14 +26,13 @@ public class NotificationService {
     private UserServiceClient userServiceClient;
     
     public Notification createNotification(Notification notification) {
-        notification.setCreatedAt(LocalDateTime.now());
+        // Ensure timestamps are stored in UTC for consistent client rendering
+        notification.setCreatedAt(OffsetDateTime.now(ZoneOffset.UTC));
         notification.setRead(false);
         Notification saved = repository.save(notification);
         
-        // Populate sender details before sending via WebSocket
         populateSenderDetails(saved);
         
-        // Send real-time notification via WebSocket
         messagingTemplate.convertAndSend(
             "/topic/user/" + notification.getUserId() + "/notifications", 
             saved
@@ -43,14 +43,12 @@ public class NotificationService {
     
     public List<Notification> getUserNotifications(Long userId) {
         List<Notification> notifications = repository.findByUserIdOrderByCreatedAtDesc(userId);
-        // Populate sender details for each notification
         notifications.forEach(this::populateSenderDetails);
         return notifications;
     }
     
     public List<Notification> getUnreadNotifications(Long userId) {
         List<Notification> notifications = repository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId);
-        // Populate sender details for each notification
         notifications.forEach(this::populateSenderDetails);
         return notifications;
     }
@@ -84,7 +82,6 @@ public class NotificationService {
                     notification.setSenderProfilePicture(sender.getProfilePicURL());
                 }
             } catch (Exception e) {
-                // Log error but don't fail the notification retrieval
                 System.err.println("Failed to fetch sender details for senderId: " + notification.getSenderId());
             }
         }

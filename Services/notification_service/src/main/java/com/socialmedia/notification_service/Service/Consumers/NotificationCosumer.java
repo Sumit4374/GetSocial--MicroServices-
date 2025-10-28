@@ -43,9 +43,6 @@ public class NotificationCosumer {
         try {
             log.info("Received post event: {}", message);
             PostEvent event = objectMapper.readValue(message, PostEvent.class);
-            
-            // For now, we might not create notifications for own posts
-            // This could be used for other features like feed updates
             log.info("Post created by user: {}, postId: {}", event.getUserId(), event.getPostId());
             
         } catch (Exception e) {
@@ -62,7 +59,7 @@ public class NotificationCosumer {
             log.info("Received comment event: {}", message);
             CommentEvent event = objectMapper.readValue(message, CommentEvent.class);
             
-            if ("comment added".equals(event.getType())) {
+            if ("Comment added".equals(event.getType())) {
                 log.info("Comment added: userId={}, postId={}, comment={}", 
                     event.getUserId(), event.getPostId(), event.getComment());
                 

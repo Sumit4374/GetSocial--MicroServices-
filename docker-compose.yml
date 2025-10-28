@@ -1,7 +1,7 @@
 services:
   # PostgreSQL Database - Single instance with multiple databases
   postgres:
-    image: postgres:latest
+    image: postgres:16
     container_name: postgres-db
     environment:
       POSTGRES_USER: root

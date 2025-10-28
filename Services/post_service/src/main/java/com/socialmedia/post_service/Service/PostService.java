@@ -53,7 +53,7 @@ public class PostService {
     }
 
     public List<Post> getFeed(Long userId){
-        return repo.findAllByOrderByCreatedAtDesc();
+        return repo.findAllByOrderByCreatedAtDesc().reversed();
     }
 
     public void deletePost(Long postId, Long userId){

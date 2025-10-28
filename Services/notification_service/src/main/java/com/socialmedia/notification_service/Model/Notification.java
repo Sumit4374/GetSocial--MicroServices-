@@ -1,8 +1,10 @@
 package com.socialmedia.notification_service.Model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import jakarta.persistence.Column;
 
 @Entity
 @Table(name = "notifications")
@@ -24,7 +27,9 @@ public class Notification {
     private String message;
     private Long postId;
     private Boolean read = false;
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
     
     @Transient
     private String senderUsername;
@@ -55,8 +60,8 @@ public class Notification {
     public Boolean getRead() { return read; }
     public void setRead(Boolean read) { this.read = read; }
     
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     
     public String getSenderUsername() { return senderUsername; }
     public void setSenderUsername(String senderUsername) { this.senderUsername = senderUsername; }
