@@ -1,55 +1,139 @@
-import { useEffect, useRef, useState } from 'react';
+import { Client, IFrame, IMessage, StompSubscription } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
-export const useWebSocket = (url: string, userId?: string | number) => {
+const GATEWAY_URL = typeof import.meta !== 'undefined' && import.meta.env?.VITE_GATEWAY_URL
+  ? String(import.meta.env.VITE_GATEWAY_URL)
+  : 'http://localhost:8080';
+
+const WS_ENDPOINT_NATIVE = '/notification-service/ws';
+const WS_ENDPOINT_SOCKJS = '/notification-service/ws-sock';
+
+export const useWebSocket = (destination?: string, userId?: string | number) => {
   const [isConnected, setIsConnected] = useState(false);
+  // Payload shape is controlled by server events, so keep it flexible for now.
   const [notifications, setNotifications] = useState<any[]>([]);
-  const websocketRef = useRef<WebSocket | null>(null);
+  const clientRef = useRef<Client | null>(null);
+  const subscriptionRef = useRef<StompSubscription | null>(null);
+  const { token } = useAuth();
+
+  const { nativeUrl, sockUrl } = useMemo(() => {
+    if (!userId || !destination || !token) {
+      return { nativeUrl: null as string | null, sockUrl: null as string | null };
+    }
+    // Append JWT in query string for handshake (gateway will read access_token)
+    const makeUrl = (endpoint: string) => {
+      const url = `${GATEWAY_URL}${endpoint}`;
+      const sep = url.includes('?') ? '&' : '?';
+      return `${url}${sep}access_token=${encodeURIComponent(token)}`;
+    };
+    return {
+      nativeUrl: makeUrl(WS_ENDPOINT_NATIVE),
+      sockUrl: makeUrl(WS_ENDPOINT_SOCKJS),
+    };
+  }, [destination, userId, token]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!nativeUrl || !sockUrl || !destination || !token) {
+      return;
+    }
 
-    const connectWebSocket = () => {
-      const wsUrl = `ws://localhost:8080${url}`;
-      websocketRef.current = new WebSocket(wsUrl);
+    // Prefer native WebSocket when available to ensure query params are preserved across transports.
+    // Fallback to SockJS if native WS is not supported or fails at runtime.
+    const canUseNativeWS = typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined';
 
-      websocketRef.current.onopen = () => {
+    const triedFallbackRef = { current: false } as { current: boolean };
+    const usingNativeRef = { current: canUseNativeWS } as { current: boolean };
+
+    const createClient = (useNative: boolean) => {
+      usingNativeRef.current = useNative;
+      const client = new Client({
+        reconnectDelay: 3000,
+        ...(useNative
+          ? { brokerURL: nativeUrl.replace(/^http(s?):\/\//, 'ws$1://') }
+          : { webSocketFactory: () => new SockJS(sockUrl) }
+        ),
+        connectHeaders: { Authorization: `Bearer ${token}` },
+      });
+
+      client.onConnect = () => {
         setIsConnected(true);
-        console.log('WebSocket connected');
+        subscriptionRef.current = client.subscribe(destination, (frame: IMessage) => {
+          try {
+            const parsed = frame.body ? JSON.parse(frame.body) : null;
+            if (parsed && typeof parsed === 'object') {
+              setNotifications((prev) => [parsed, ...prev]);
+            }
+          } catch (err) {
+            console.error('Failed to parse STOMP payload', err);
+          }
+        });
       };
 
-      websocketRef.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          setNotifications(prev => [data, ...prev]);
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+      const tryFallback = () => {
+        if (!triedFallbackRef.current && usingNativeRef.current) {
+          triedFallbackRef.current = true;
+          // Swap to SockJS
+          client.deactivate().finally(() => {
+            const sockClient = createClient(false);
+            sockClient.activate();
+            clientRef.current = sockClient;
+          });
         }
       };
 
-      websocketRef.current.onclose = () => {
+      client.onDisconnect = () => {
         setIsConnected(false);
-        console.log('WebSocket disconnected');
-        // Reconnect after 3 seconds
-        setTimeout(connectWebSocket, 3000);
       };
 
-      websocketRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+      client.onWebSocketClose = () => {
+        if (!isConnected) {
+          tryFallback();
+        }
+        setIsConnected(false);
       };
+
+      client.onStompError = (frame: IFrame) => {
+        console.error('STOMP error', frame.headers['message'], frame.body);
+        if (!isConnected) {
+          tryFallback();
+        }
+      };
+
+      return client;
     };
 
-    connectWebSocket();
+    const initialClient = createClient(canUseNativeWS);
+    initialClient.activate();
+    clientRef.current = initialClient;
 
     return () => {
-      if (websocketRef.current) {
-        websocketRef.current.close();
-      }
+      subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
+      clientRef.current?.deactivate();
+      clientRef.current = null;
+      setIsConnected(false);
     };
-  }, [url, userId]);
+  }, [nativeUrl, sockUrl, destination]);
 
-  const sendMessage = (message: any) => {
-    if (websocketRef.current && isConnected) {
-      websocketRef.current.send(JSON.stringify(message));
+  const sendMessage = (message: Record<string, unknown>, overrideDestination?: string) => {
+    if (!clientRef.current || !isConnected) {
+      return;
+    }
+
+    const target = overrideDestination ?? destination;
+    if (!target) {
+      return;
+    }
+
+    try {
+      clientRef.current.publish({
+        destination: target,
+        body: JSON.stringify(message),
+      });
+    } catch (err) {
+      console.error('Failed to publish STOMP message', err);
     }
   };
 

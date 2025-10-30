@@ -37,8 +37,13 @@ public class UserService {
         UserProfile userProfile = repo.findByUserId(userId).orElseThrow(
             () -> new RuntimeException("no user found")
         );
-        userProfile.setProfilePicURL(picUrl);
-        repo.save(userProfile);
+
+        if(picUrl!=null){
+            userProfile.setProfilePicURL(picUrl);
+            repo.save(userProfile);
+        }else{
+            throw new RuntimeException("Url Not found");
+        }
     }
 
     public boolean isFollowing(Long userId, Long targetId){
@@ -69,9 +74,16 @@ public class UserService {
     public UserProfile updateProfile(Long userId,UserProfile updateUser){
         UserProfile user = repo.findByUserId(userId).orElseThrow(
             ()-> new RuntimeException("No user found"));
-        user.setName(updateUser.getName());
-        user.setBio(updateUser.getBio());
-        user.setProfilePicURL(updateUser.getProfilePicURL());
+        // Only overwrite fields that are actually provided to avoid clearing values unintentionally
+        if (updateUser.getName() != null && !updateUser.getName().isBlank()) {
+            user.setName(updateUser.getName());
+        }
+        if (updateUser.getBio() != null) {
+            user.setBio(updateUser.getBio());
+        }
+        if (updateUser.getProfilePicURL() != null && !updateUser.getProfilePicURL().isBlank()) {
+            user.setProfilePicURL(updateUser.getProfilePicURL());
+        }
         return repo.save(user);
     }
 

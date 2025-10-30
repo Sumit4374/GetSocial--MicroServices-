@@ -43,7 +43,7 @@ public class UserController {
     }
 
     @PutMapping("{userId}/updateprofile")
-    public ResponseEntity<String> updateProfilePic(@PathVariable Long userId, @RequestParam("url") String profilePicUrl){
+    public ResponseEntity<String> updateProfilePic(@PathVariable Long userId, @RequestParam String profilePicUrl){
         userService.updateProfilePic(userId, profilePicUrl);
         return ResponseEntity.ok("Profile picture updated successfully");
     }

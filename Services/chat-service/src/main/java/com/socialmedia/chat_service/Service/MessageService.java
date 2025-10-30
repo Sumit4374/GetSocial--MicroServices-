@@ -1,6 +1,10 @@
 package com.socialmedia.chat_service.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,7 +60,7 @@ public class MessageService {
                         .build();
         
         MessageModel saved = messageRepo.save(msg);
-        String dest = "topic/user/"+receiverId+"/chat";
+        String dest = "/topic/user/" + receiverId + "/chat";
         MessageDto dto = toDto(saved);
         messagingTemplate.convertAndSend(dest,dto);
         try {
@@ -68,14 +72,24 @@ public class MessageService {
     }
 
     public List<MessageDto> getConversationMessages(String conversartionId){
-        return messageRepo.findByConversationIdOrderByCreatedAtDesc(conversartionId).stream().map(this::toDto).toList();
+        return messageRepo.findByConversationIdOrderByCreatedAtAsc(conversartionId).stream().map(this::toDto).toList();
     }
 
     private MessageDto toDto(MessageModel msg){
+        String createdAtStr = null;
+        if (msg.getCreatedAt() != null) {
+            ZonedDateTime zdt = ZonedDateTime.of(msg.getCreatedAt(), ZoneId.systemDefault())
+                                            .withZoneSameInstant(ZoneOffset.UTC);
+            createdAtStr = DateTimeFormatter.ISO_INSTANT.format(zdt);
+        }
         return MessageDto.builder()
-        .id(msg.getId()).conversationId(msg.getConversationId())
-        .senderId(msg.getSenderId()).receiverId(msg.getReceiverId())
-        .content(msg.getContent()).status(msg.getStatus()).createdAt(msg.getCreatedAt())
-        .build();
+            .id(msg.getId())
+            .conversationId(msg.getConversationId())
+            .senderId(msg.getSenderId())
+            .receiverId(msg.getReceiverId())
+            .content(msg.getContent())
+            .status(msg.getStatus())
+            .createdAt(createdAtStr)
+            .build();
     }
 }

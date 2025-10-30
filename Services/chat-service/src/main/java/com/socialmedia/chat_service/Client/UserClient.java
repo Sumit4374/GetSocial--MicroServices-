@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "user-service")
 public interface UserClient {
 
-    @GetMapping("/{userId}/is-following/{otherUserId}")
+    @GetMapping("/api/users/{userId}/is-following/{otherUserId}")
     boolean isFollowing(@PathVariable("userId") Long userId,@PathVariable("otherUserId") Long otherUserId);
     
-    @GetMapping("{userId}/basics")
+    @GetMapping("/api/users/{userId}/basics")
     UserBasicDto getBasic(@PathVariable("userId") Long userId);
 } 
