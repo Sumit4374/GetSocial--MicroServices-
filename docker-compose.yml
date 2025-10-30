@@ -1,7 +1,7 @@
 services:
   # PostgreSQL Database - Single instance with multiple databases
   postgres:
-    image: postgres:latest
+    image: postgres:16
     container_name: postgres-db
     environment:
       POSTGRES_USER: root
@@ -182,9 +182,9 @@ services:
       - JWT_SECRET=FSO66lU+9FB4WKbafCVfacWWK10IVxzayT20I15GMHE=
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
-      - CLOUD_NAME=default_cloud_name
-      - API_KEY=default_api_key
-      - API_SECRET=default_api_secret
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
     ports:
       - "8083:8083"
     networks:
@@ -310,6 +310,27 @@ services:
       - "8080:8080"
     networks:
       - microservices-network
+
+  # React Vite Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: react-client
+    depends_on:
+      - api-gateway
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080
+    ports:
+      - "3000:80"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   microservices-network:

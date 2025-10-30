@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Home, MessageCircle, PlusSquare, Search, User, LogOut } from 'lucide-react';
+import { Home, MessageCircle, PlusSquare, Search, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import NotificationBell from '../Notification/NotificationBell';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
@@ -66,12 +67,9 @@ const Header: React.FC = () => {
             >
               <PlusSquare className="h-6 w-6" />
             </Link>
-            <Link
-              to="/activity"
-              className="p-2 text-gray-600 hover:text-pink-500 transition-colors"
-            >
-              <Heart className="h-6 w-6" />
-            </Link>
+            
+            {/* Notification Bell */}
+            <NotificationBell />
             
             {/* Profile Menu */}
             <div className="relative">

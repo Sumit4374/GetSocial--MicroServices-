@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ChatMessage, ChatConversation } from '../../types';
+import { ChatMessage, ChatConversation, User } from '../../types';
 import { apiClient } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWebSocket } from '../../hooks/useWebSocket';
@@ -18,7 +18,109 @@ const ChatWindow: React.FC = () => {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { notifications } = useWebSocket(`/notification-service/ws/topic/user/${user?.id}/chat`, user?.id);
+  const topicDestination = user ? `/topic/user/${user.id}/chat` : undefined;
+  const { notifications } = useWebSocket(topicDestination, user?.id);
+
+  const otherParticipant = useMemo(
+    () => conversation?.participants?.find((p) => p.id !== user?.id),
+    [conversation, user?.id]
+  );
+
+  const normalizeRealtimeMessage = useCallback(
+    (payload: any): ChatMessage | null => {
+      if (!payload || typeof payload !== 'object') {
+        return null;
+      }
+
+      const rawId = typeof payload.id === 'string' ? payload.id : undefined;
+      const conversationKey =
+        typeof payload.conversationId === 'string' ? payload.conversationId : undefined;
+
+      const senderIdRaw =
+        typeof payload.senderId === 'number'
+          ? payload.senderId
+          : typeof payload.senderId === 'string'
+          ? Number(payload.senderId)
+          : undefined;
+
+      const contentValue = typeof payload.content === 'string' ? payload.content : undefined;
+
+      if (!rawId || !conversationKey || senderIdRaw == null || !contentValue) {
+        return null;
+      }
+
+      let createdAtValue: string;
+      if (typeof payload.createdAt === 'string') {
+        createdAtValue = payload.createdAt;
+      } else if (payload.createdAt && typeof payload.createdAt === 'object') {
+        const dateParts = payload.createdAt as Record<string, number>;
+        const year = dateParts.year;
+        const month = dateParts.monthValue ?? dateParts.month;
+        const day = dateParts.dayOfMonth ?? dateParts.day;
+        const hour = dateParts.hour ?? 0;
+        const minute = dateParts.minute ?? 0;
+        const second = dateParts.second ?? 0;
+
+        if (
+          typeof year === 'number' &&
+          typeof month === 'number' &&
+          typeof day === 'number'
+        ) {
+          createdAtValue = new Date(Date.UTC(year, month - 1, day, hour, minute, second)).toISOString();
+        } else {
+          createdAtValue = new Date().toISOString();
+        }
+      } else {
+        createdAtValue = new Date().toISOString();
+      }
+
+      const senderFromPayload =
+        payload.sender && typeof payload.sender === 'object'
+          ? (payload.sender as Partial<User>)
+          : undefined;
+
+      const resolvedSender: User = senderFromPayload
+        ? {
+            id: typeof senderFromPayload.id === 'number'
+              ? senderFromPayload.id
+              : typeof senderFromPayload.id === 'string'
+              ? Number(senderFromPayload.id)
+              : senderIdRaw,
+            username:
+              typeof senderFromPayload.username === 'string'
+                ? senderFromPayload.username
+                : `User ${senderIdRaw}`,
+            email: senderFromPayload.email,
+            profilePicture: senderFromPayload.profilePicture,
+            bio: senderFromPayload.bio,
+            followerCount: senderFromPayload.followerCount,
+            followingCount: senderFromPayload.followingCount,
+            postCount: senderFromPayload.postCount,
+            createdAt: senderFromPayload.createdAt,
+          }
+        : senderIdRaw === user?.id && user
+        ? user
+        : otherParticipant && otherParticipant.id === senderIdRaw
+        ? otherParticipant
+        : {
+            id: senderIdRaw,
+            username:
+              typeof payload.senderUsername === 'string'
+                ? payload.senderUsername
+                : `User ${senderIdRaw}`,
+          };
+
+      return {
+        id: rawId,
+        conversationId: conversationKey,
+        senderId: senderIdRaw,
+        content: contentValue,
+        createdAt: createdAtValue,
+        sender: resolvedSender,
+      };
+    },
+    [user, otherParticipant]
+  );
 
   useEffect(() => {
     if (conversationId && user) {
@@ -27,12 +129,24 @@ const ChatWindow: React.FC = () => {
   }, [conversationId, user]);
 
   useEffect(() => {
-    // Handle real-time messages
-    const newChatMessage = notifications.find(n => n.type === 'message' && n.conversationId === conversationId);
-    if (newChatMessage) {
-      setMessages(prev => [...prev, newChatMessage]);
+    if (!notifications.length || !conversationId) {
+      return;
     }
-  }, [notifications, conversationId]);
+
+    const latestPayload = notifications[0];
+    const normalized = normalizeRealtimeMessage(latestPayload);
+
+    if (!normalized || normalized.conversationId !== conversationId) {
+      return;
+    }
+
+    setMessages((prev) => {
+      if (prev.some((msg) => msg.id === normalized.id)) {
+        return prev;
+      }
+      return [...prev, normalized];
+    });
+  }, [notifications, conversationId, normalizeRealtimeMessage]);
 
   useEffect(() => {
     scrollToBottom();
@@ -97,7 +211,6 @@ const ChatWindow: React.FC = () => {
     );
   }
 
-  const otherParticipant = conversation?.participants?.find(p => p.id !== user?.id);
   const isActive = conversation?.status === 'ACTIVE';
 
   return (

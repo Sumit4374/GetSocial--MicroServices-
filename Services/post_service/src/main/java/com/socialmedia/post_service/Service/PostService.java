@@ -47,9 +47,13 @@ public class PostService {
     public List<Post> getPostsByUser(Long userId){
         return repo.findByUserIdOrderByCreatedAtDesc(userId);
     }
+    
+    public Post getPostById(Long postId){
+        return repo.findById(postId).orElseThrow(()-> new RuntimeException("No post found"));
+    }
 
     public List<Post> getFeed(Long userId){
-        return repo.findAllByOrderByCreatedAtDesc();
+        return repo.findAllByOrderByCreatedAtDesc().reversed();
     }
 
     public void deletePost(Long postId, Long userId){

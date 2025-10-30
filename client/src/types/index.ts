@@ -64,14 +64,16 @@ export interface ChatMessage {
 }
 
 export interface Notification {
-  id: string;
-  type: 'like' | 'comment' | 'follow' | 'chat_request' | 'post';
-  userId: number;  // Changed to match User.id type
-  fromUser: User;
-  postId?: string;
+  id: number;
+  type: 'LIKE' | 'COMMENT' | 'FOLLOW' | 'CHAT_REQUEST' | 'POST';
+  userId: number;
+  senderId: number;
+  postId?: number;
   message: string;
   createdAt: string;
   read: boolean;
+  senderUsername?: string;
+  senderProfilePicture?: string;
 }
 
 export interface AuthContextType {

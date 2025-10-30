@@ -1,6 +1,7 @@
 package com.socialmedia.post_service.Config;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -10,11 +11,14 @@ import com.cloudinary.utils.ObjectUtils;
 @Configuration
 public class CloudinaryConfig {
 
-    private String cloudName = "";
+    @Value("${spring.cloud-name}")
+    private String cloudName;
 
-    private String apiKey = "";
+    @Value("${spring.cloud-key}")
+    private String apiKey;
 
-    private String apiSecret = "";
+    @Value("${spring.cloud-secret}")
+    private String apiSecret;
 
     @Bean
     public Cloudinary cloudinary(){

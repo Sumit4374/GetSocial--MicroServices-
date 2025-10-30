@@ -1,7 +1,5 @@
 package com.socialmedia.chat_service.DTOs;
 
-import java.time.LocalDateTime;
-
 import com.socialmedia.chat_service.Model.Enums.MessageStatus;
 
 import lombok.Builder;
@@ -16,5 +14,5 @@ public class MessageDto {
     private Long receiverId;
     private String content;
     private MessageStatus status;
-    private LocalDateTime createdAt;
+    private String createdAt;
 }

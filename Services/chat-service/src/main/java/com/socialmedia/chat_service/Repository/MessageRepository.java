@@ -9,5 +9,5 @@ import com.socialmedia.chat_service.Model.MessageModel;
 
 @Repository
 public interface MessageRepository extends JpaRepository<MessageModel,String> {
-    List<MessageModel> findByConversationIdOrderByCreatedAtDesc(String conversationId);
+    List<MessageModel> findByConversationIdOrderByCreatedAtAsc(String conversationId);
 }
