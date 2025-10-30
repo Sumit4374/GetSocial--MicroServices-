@@ -10,11 +10,11 @@ import com.cloudinary.utils.ObjectUtils;
 @Configuration
 public class CloudinaryConfig {
 
-    private String cloudName = "dkmahaywh";
+    private String cloudName = "";
 
-    private String apiKey = "247566332861849";
+    private String apiKey = "";
 
-    private String apiSecret = "alxhRS1CCH7wnsHWsiQhfmT3afU";
+    private String apiSecret = "";
 
     @Bean
     public Cloudinary cloudinary(){
